@@ -1,0 +1,74 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# uv
+.uv/
+
+# Node / MCP server
+mcp-server/node_modules/
+mcp-server/dist/
+*.js.map
+*.d.ts.map
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Workspace config (user-specific)
+.autochunk.yaml
+
+# Cache
+.cache/
+
+# Large data assets (never commit)
+data/
+corpora/
+benchmarks/
+eval_results/
+fixtures/large/
+*.jsonl
+*.parquet
+*.pkl
+*.h5
+*.bin
+*.safetensors
+
+# Docs build
+site/
+docs/_build/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
