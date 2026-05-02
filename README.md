@@ -1,5 +1,10 @@
 # chunktuner
 
+[![PyPI version](https://img.shields.io/pypi/v/chunktuner.svg)](https://pypi.org/project/chunktuner/)
+[![Python versions](https://img.shields.io/pypi/pyversions/chunktuner.svg)](https://pypi.org/project/chunktuner/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/shantanudeshmukh/chunktuner/actions/workflows/ci.yml/badge.svg)](https://github.com/shantanudeshmukh/chunktuner/actions/workflows/ci.yml)
+
 Auto chunking tuner and MCP server for RAG pipelines.
 
 Give it your documents. It tries multiple chunking strategies, measures which one lets an AI answer questions most accurately, and tells you the winner.
@@ -135,14 +140,9 @@ uv add "chunktuner[all]"             # everything
 
 ---
 
-## Development
+## Contributing
 
-```bash
-uv run pytest                        # run tests
-uv run ruff check src/               # lint
-uv run ruff format src/              # format
-uv run chunk-tune --help             # CLI
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
