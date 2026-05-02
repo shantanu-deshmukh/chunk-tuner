@@ -7,6 +7,7 @@ from typing import Any
 import tiktoken
 
 from chunktuner.chunking.pdf_structural import PdfStructuralStrategy
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -42,7 +43,10 @@ class StructuralSemanticStrategy:
             ft = FixedTokenStrategy(encoding_name=self._encoding_name)
             subchunks = ft.chunk(
                 subdoc,
-                ChunkConfig(name="fixed_tokens", params={"max_tokens": max_tokens, "overlap_tokens": overlap}),
+                ChunkConfig(
+                    name="fixed_tokens",
+                    params={"max_tokens": max_tokens, "overlap_tokens": overlap},
+                ),
             )
             for sc in subchunks:
                 abs_start = r.start_offset + sc.start_offset
@@ -60,6 +64,7 @@ class StructuralSemanticStrategy:
                     )
                 )
                 idx += 1
+        validate_chunk_offsets(doc, out)
         return out
 
     def param_schema(self) -> dict[str, Any]:

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 
-from chunktuner.ingestion.content_type import detect_content_type
 from chunktuner.ingestion.preprocessor import preprocess
 from chunktuner.models import ContentType, Document
 
@@ -20,6 +20,8 @@ _EXT_LANG = {
     ".cpp": "cpp",
     ".c": "c",
 }
+
+logger = logging.getLogger(__name__)
 
 
 class FileIngestor:
@@ -92,8 +94,19 @@ class FileIngestor:
             return self._ingest_docling(path, ct)
         return [self._ingest_plain(path, ct)]
 
+    def _read_text(self, path: Path) -> str:
+        try:
+            return path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            logger.warning(
+                "File %s is not valid UTF-8; retrying with latin-1. "
+                "Character offsets may differ from byte offsets.",
+                path,
+            )
+            return path.read_text(encoding="latin-1")
+
     def _ingest_plain(self, path: Path, detected: str) -> Document:
-        raw = path.read_text(encoding="utf-8", errors="replace")
+        raw = self._read_text(path)
         content = preprocess(raw, "html" if detected == "html" else detected)
         content_type: ContentType
         if detected == "text":

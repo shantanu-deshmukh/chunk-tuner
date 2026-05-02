@@ -1,6 +1,6 @@
 """chunktuner — auto chunking tuner library."""
 
-from chunktuner.cache import ChunkCache, EmbeddingCache, CachedEmbeddingFunction
+from chunktuner.cache import CachedEmbeddingFunction, ChunkCache, EmbeddingCache
 from chunktuner.chunking import StrategyRegistry, build_full_registry, default_registry
 from chunktuner.eval import (
     CostEstimator,

@@ -26,13 +26,10 @@ def register(app: typer.Typer) -> None:
         if not db.is_file():
             typer.echo("No cache database on disk yet.")
             raise typer.Exit(0)
-        emb = EmbeddingCache(db, model)
-        ch = ChunkCache(db)
-        typer.echo(f"Database: {db}")
-        typer.echo(f"Embeddings: {emb.stats()}")
-        typer.echo(f"Chunks: {ch.stats()}")
-        emb.close()
-        ch.close()
+        with EmbeddingCache(db, model) as emb, ChunkCache(db) as ch:
+            typer.echo(f"Database: {db}")
+            typer.echo(f"Embeddings: {emb.stats()}")
+            typer.echo(f"Chunks: {ch.stats()}")
 
     @cache_app.command("clear")
     def cache_clear(
@@ -43,8 +40,9 @@ def register(app: typer.Typer) -> None:
         cache_dir = Path(ws.cache_dir).expanduser() if ws.cache_dir else default_cache_dir()
         db = default_embedding_db_path(cache_dir)
         if db.is_file():
-            EmbeddingCache(db, model).clear()
-            ChunkCache(db).clear()
+            with EmbeddingCache(db, model) as emb, ChunkCache(db) as ch:
+                emb.clear()
+                ch.clear()
         typer.echo("Caches cleared.")
 
     app.add_typer(cache_app, name="cache")

@@ -53,11 +53,19 @@ class EmbeddingCache:
         self._conn.commit()
 
     def stats(self) -> dict:
-        row = self._conn.execute("SELECT COUNT(*), COALESCE(SUM(dim*4+32),0) FROM embeddings").fetchone()
+        row = self._conn.execute(
+            "SELECT COUNT(*), COALESCE(SUM(dim*4+32),0) FROM embeddings"
+        ).fetchone()
         return {"rows": int(row[0] or 0), "approx_bytes": int(row[1] or 0)}
 
     def close(self) -> None:
         self._conn.close()
+
+    def __enter__(self) -> EmbeddingCache:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
 
 
 def default_embedding_db_path(cache_dir: Path) -> Path:

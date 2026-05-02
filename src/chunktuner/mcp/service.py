@@ -68,13 +68,15 @@ def evaluate_chunking_impl(
         fi = FileIngestor(root=p.parent if p.is_file() else p)
         docs = fi.ingest_path(p) if p.is_file() else fi.ingest_dir(p)
         docs = docs[:max_docs]
-        grid: dict[str, list[dict]] = {n: build_full_registry().get(n).default_param_grid() for n in names}
-        est = CostEstimator().estimate(docs, names, grid, embedding_model or "text-embedding-3-small")
+        grid: dict[str, list[dict]] = {
+            n: build_full_registry().get(n).default_param_grid() for n in names
+        }
+        est = CostEstimator().estimate(
+            docs, names, grid, embedding_model or "text-embedding-3-small"
+        )
         return est.model_dump()
     embed = (
-        LiteLLMEmbeddingFunction(embedding_model)
-        if embedding_model
-        else DummyEmbeddingFunction()
+        LiteLLMEmbeddingFunction(embedding_model) if embedding_model else DummyEmbeddingFunction()
     )
     fi = FileIngestor(root=p.parent if p.is_file() else p)
     docs = fi.ingest_path(p) if p.is_file() else fi.ingest_dir(p)
@@ -89,7 +91,10 @@ def evaluate_chunking_impl(
         for params in strat.default_param_grid():
             cfg = ChunkConfig(name=n, params=dict(params))
             results.append(ev.evaluate(strat, cfg, docs, ds, scorer=scorer))
-    return {"dataset_summary": {"queries": len(ds.queries)}, "results": [r.model_dump() for r in results]}
+    return {
+        "dataset_summary": {"queries": len(ds.queries)},
+        "results": [r.model_dump() for r in results],
+    }
 
 
 def recommend_config_impl(
@@ -106,9 +111,7 @@ def recommend_config_impl(
     if not p.exists():
         raise ValueError("path does not exist")
     embed = (
-        LiteLLMEmbeddingFunction(embedding_model)
-        if embedding_model
-        else DummyEmbeddingFunction()
+        LiteLLMEmbeddingFunction(embedding_model) if embedding_model else DummyEmbeddingFunction()
     )
     fi = FileIngestor(root=p.parent if p.is_file() else p)
     docs = fi.ingest_path(p) if p.is_file() else fi.ingest_dir(p)

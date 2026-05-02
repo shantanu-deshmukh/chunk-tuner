@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal, Protocol, runtime_checkable
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 ContentType = Literal["text", "markdown", "html", "pdf", "docx", "pptx", "code"]
 UseCase = Literal["rag_qa", "search", "summarization", "code_assist"]
@@ -31,6 +31,16 @@ class Chunk(BaseModel):
     end_offset: int
     tokens: int | None = None
     metadata: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_offsets(self) -> Chunk:
+        if self.start_offset < 0:
+            raise ValueError(f"start_offset must be >= 0, got {self.start_offset}")
+        if self.end_offset <= self.start_offset:
+            raise ValueError(
+                f"end_offset ({self.end_offset}) must be > start_offset ({self.start_offset})"
+            )
+        return self
 
 
 class ChunkConfig(BaseModel):

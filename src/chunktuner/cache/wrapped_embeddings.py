@@ -20,10 +20,11 @@ class CachedEmbeddingFunction:
         if missing_idx:
             batch = [texts[i] for i in missing_idx]
             fresh = self._inner.embed_documents(batch)
-            for i, vec in zip(missing_idx, fresh):
+            for i, vec in zip(missing_idx, fresh, strict=True):
                 self._cache.set(texts[i], vec)
                 results[i] = vec
-        return [v for v in results if v is not None]
+        assert all(v is not None for v in results), "BUG: unfilled cache slot after fetch"
+        return results  # type: ignore[return-value]
 
     def embed_query(self, text: str) -> list[float]:
         hit = self._cache.get(text)

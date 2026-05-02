@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 import time
 from collections import Counter, defaultdict
@@ -21,6 +22,10 @@ from chunktuner.models import (
     EvalMetrics,
     EvalResult,
 )
+
+logger = logging.getLogger(__name__)
+
+_EPS: float = 1e-9  # zero-division guard for cosine similarity normalization
 
 
 def _token_bounds(encoding: tiktoken.Encoding, text: str) -> list[int]:
@@ -146,8 +151,8 @@ class Evaluator:
             idxs = [p[0] for p in pairs]
             mat = np.stack([chunk_vecs[i] for i in idxs])
             qv = q_vecs[q.id]
-            qn = qv / (np.linalg.norm(qv) + 1e-9)
-            matn = mat / (np.linalg.norm(mat, axis=1, keepdims=True) + 1e-9)
+            qn = qv / (np.linalg.norm(qv) + _EPS)
+            matn = mat / (np.linalg.norm(mat, axis=1, keepdims=True) + _EPS)
             sims = matn @ qn
             order = np.argsort(-sims)
             ranked_chunks = [pairs[int(j)][1] for j in order]
@@ -246,21 +251,27 @@ class Evaluator:
                 continue
             ctx = [c.text for c in topk_by_q[q.id]]
             con = "\n\n".join(ctx)
-            resp = litellm.completion(
-                model=self.llm_answer_model,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": (
-                            "Answer using ONLY the context. Be concise.\n\n"
-                            f"Context:\n{con}\n\nQuestion: {q.question}"
-                        ),
-                    }
-                ],
-                max_tokens=256,
-                temperature=0.0,
-            )
-            answer = (resp.choices[0].message.content or "").strip()
+            try:
+                resp = litellm.completion(
+                    model=self.llm_answer_model,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": (
+                                "Answer using ONLY the context. Be concise.\n\n"
+                                f"Context:\n{con}\n\nQuestion: {q.question}"
+                            ),
+                        }
+                    ],
+                    max_tokens=256,
+                    temperature=0.0,
+                )
+                answer = (resp.choices[0].message.content or "").strip()
+            except Exception as exc:
+                logger.warning(
+                    "Generation metric LLM call failed: %s. Skipping for this query.", exc
+                )
+                answer = ""
             ref = q.reference_answer
             if not ref and q.answer_spans:
                 a0, b0 = q.answer_spans[0]
@@ -270,10 +281,10 @@ class Evaluator:
             ans.append(answer)
             gts.append(ref or "")
         scores = bridge.compute(qs, ctxs, ans, gts)
-        updates: dict = {}
-        if "faithfulness" in scores:
+        updates: dict[str, float | None] = {}
+        if scores.get("faithfulness") is not None:
             updates["faithfulness"] = scores["faithfulness"]
-        if "answer_relevancy" in scores:
+        if scores.get("answer_relevancy") is not None:
             updates["answer_relevancy"] = scores["answer_relevancy"]
         return metrics.model_copy(update=updates) if updates else metrics
 
@@ -291,9 +302,18 @@ class Evaluator:
     ) -> None:
         if not chunks:
             return
-        sample = chunks if len(chunks) <= 10 else random.Random(42).sample(chunks, 10)
+        n = len(chunks)
+        if n <= 500:
+            sample = chunks
+        else:
+            k = max(50, min(200, n // 10))
+            sample = random.Random(42).sample(chunks, k)
         for c in sample:
             d = docs_by_id[c.document_id]
             got = d.content[c.start_offset : c.end_offset]
             if got != c.text:
-                raise ValueError(f"Offset invariant failed for chunk {c.id}: slice != chunk.text")
+                raise ValueError(
+                    f"Offset invariant failed for chunk {c.id!r}: "
+                    f"content[{c.start_offset}:{c.end_offset}]={got[:60]!r} "
+                    f"!= chunk.text={c.text[:60]!r}"
+                )

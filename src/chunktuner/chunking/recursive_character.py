@@ -6,6 +6,7 @@ from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 _DEFAULT_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
@@ -24,6 +25,11 @@ class RecursiveCharacterStrategy:
         overlap = int(config.params.get("chunk_overlap_chars", 0))
         separators: list[str] = list(config.params.get("separators", _DEFAULT_SEPARATORS))
         chunk_size = max(1, chunk_size)
+        if overlap >= chunk_size:
+            raise ValueError(
+                f"chunk_overlap_chars ({overlap}) must be < chunk_size_chars ({chunk_size}). "
+                "Otherwise the sliding window cannot advance."
+            )
         overlap = max(0, min(overlap, chunk_size - 1)) if chunk_size > 1 else 0
 
         text = doc.content
@@ -56,6 +62,7 @@ class RecursiveCharacterStrategy:
                     tokens=toks,
                 )
             )
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def _find_break(self, text: str, start: int, end: int, separators: list[str]) -> int:

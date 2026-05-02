@@ -7,6 +7,7 @@ from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 _PAGE = re.compile(r"(?m)^##\s*Page\s+(\d+)\s*$")
@@ -16,7 +17,9 @@ _SECTION = re.compile(r"(?m)^#{1,2}\s+\S.*$")
 class PdfStructuralStrategy:
     name = "pdf_structural"
     supported_content_types = ["pdf", "markdown", "html"]
-    description = "Splits on page headings or major markdown headings, then sub-splits long regions."
+    description = (
+        "Splits on page headings or major markdown headings, then sub-splits long regions."
+    )
 
     def __init__(self, encoding_name: str = "cl100k_base"):
         self._enc = tiktoken.get_encoding(encoding_name)
@@ -62,6 +65,7 @@ class PdfStructuralStrategy:
                 )
                 idx += 1
                 pos = end
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def param_schema(self) -> dict[str, Any]:

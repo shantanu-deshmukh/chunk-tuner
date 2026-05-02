@@ -3,12 +3,33 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
+
+logger = logging.getLogger(__name__)
+
+MAX_CHARS = 50_000
+
+
+def _fuzzy_token_match(
+    actual: str, intended: str, enc: tiktoken.Encoding, *, threshold: float
+) -> bool:
+    """True when token-id Jaccard similarity between ``actual`` and ``intended`` is >= threshold."""
+    if not intended.strip():
+        return True
+    ta = set(enc.encode(actual))
+    tb = set(enc.encode(intended))
+    if not ta or not tb:
+        return actual.strip() == intended.strip()
+    inter = len(ta & tb)
+    union = len(ta | tb)
+    return (inter / union) >= threshold
 
 
 class AgenticStrategy:
@@ -24,13 +45,24 @@ class AgenticStrategy:
 
         model = str(config.params.get("model", "gpt-4o-mini"))
         max_props = int(config.params.get("max_propositions", 40))
-        text = doc.content[:50_000]
+        content = doc.content
+        if len(content) > MAX_CHARS:
+            logger.warning(
+                "AgenticStrategy: doc %r truncated from %d to %d chars. "
+                "Chunks beyond offset %d will be missing.",
+                doc.id,
+                len(content),
+                MAX_CHARS,
+                MAX_CHARS,
+            )
+            content = content[:MAX_CHARS]
+
         prompt = (
             "Split the following document into coherent RAG chunks. "
             "Return JSON object with key chunks: array of "
-            '{\"start_offset\": int, \"end_offset\": int} using UTF-16? NO — use character offsets '
+            '{"start_offset": int, "end_offset": int} using UTF-16? NO — use character offsets '
             "into the exact input string (Python slicing). Max chunks: "
-            f"{max_props}.\n\nDOCUMENT:\n{text}"
+            f"{max_props}.\n\nDOCUMENT:\n{content}"
         )
         resp = litellm.completion(
             model=model,
@@ -44,16 +76,21 @@ class AgenticStrategy:
         if isinstance(raw_items, dict):
             raw_items = raw_items.get("chunks", [])
         chunks: list[Chunk] = []
-        for i, item in enumerate(raw_items[:max_props]):
+        for item in raw_items[:max_props]:
             if not isinstance(item, dict):
                 continue
             a = int(item.get("start_offset", item.get("start", 0)))
             b = int(item.get("end_offset", item.get("end", 0)))
-            a = max(0, min(a, len(doc.content)))
-            b = max(a, min(b, len(doc.content)))
-            piece = doc.content[a:b]
+            a = max(0, min(a, len(content)))
+            b = max(a, min(b, len(content)))
+            piece = content[a:b]
             if not piece.strip():
                 continue
+            intended = item.get("text") or item.get("chunk_text") or item.get("content") or ""
+            if isinstance(intended, str) and intended.strip():
+                if not _fuzzy_token_match(piece, intended, self._enc, threshold=0.5):
+                    logger.warning("AgenticStrategy: rejecting chunk with poor offset match")
+                    continue
             chunks.append(
                 Chunk(
                     id=str(uuid.uuid4()),
@@ -67,13 +104,15 @@ class AgenticStrategy:
         if not chunks:
             from chunktuner.chunking.recursive_character import RecursiveCharacterStrategy
 
-            return RecursiveCharacterStrategy(encoding_name=self._enc.name).chunk(
+            out = RecursiveCharacterStrategy(encoding_name=self._enc.name).chunk(
                 doc,
                 ChunkConfig(
                     name="recursive_character",
                     params={"chunk_size_chars": 1200, "chunk_overlap_chars": 100},
                 ),
             )
+            return out
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def param_schema(self) -> dict[str, Any]:

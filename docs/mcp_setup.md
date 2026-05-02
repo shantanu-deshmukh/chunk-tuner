@@ -27,6 +27,7 @@ pip install 'chunktuner[mcp]'
 ```
 
 - **`CHUNK_TUNER_BASE_DIR`**: every `path` argument to tools must resolve under this directory (security boundary).
+- **`CHUNKTUNER_CACHE_DIR`**: optional override for the SQLite cache directory (default: `~/.cache/chunktuner`).
 - **Entry point**: `chunk-tune-mcp` → `chunktuner.mcp.server:run` (stdio JSON-RPC on stdout; **never** `print()` in MCP code).
 
 ## Local dev (editable)

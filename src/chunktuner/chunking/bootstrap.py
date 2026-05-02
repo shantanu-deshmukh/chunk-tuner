@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from chunktuner.chunking.fixed_tokens import FixedTokenStrategy
-from chunktuner.chunking.registry import StrategyRegistry
 from chunktuner.chunking.recursive_character import RecursiveCharacterStrategy
+from chunktuner.chunking.registry import StrategyRegistry
 
 
 def build_full_registry(encoding: str = "cl100k_base") -> StrategyRegistry:

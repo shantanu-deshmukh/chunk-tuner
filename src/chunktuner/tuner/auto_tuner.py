@@ -61,6 +61,12 @@ class AutoTuner:
         ds = dataset or trivial_dataset_for_docs(sampled)
 
         allowed = set(self.strategies.names(ct))
+        if strategies is not None:
+            all_registered = set(self.strategies.names())
+            invalid = [n for n in strategies if n not in all_registered]
+            if invalid:
+                available = sorted(all_registered)
+                raise ValueError(f"Unknown strategies: {invalid}. Available: {available}")
         if strategies is None:
             names = [n for n in self.strategies.names(ct)]
         else:
@@ -112,6 +118,7 @@ class AutoTuner:
                         "dataset": ds_payload,
                         "use_case": use_case,
                         "top_k": self.evaluator.top_k,
+                        "enable_generation_metrics": self.evaluator.enable_generation_metrics,
                         "encoding": "cl100k_base",
                         **embed_fields,
                     }
@@ -124,9 +131,7 @@ class AutoTuner:
             for name, params in jobs:
                 strat = self.strategies.get(name)
                 cfg = ChunkConfig(name=name, params=params)
-                results.append(
-                    self.evaluator.evaluate(strat, cfg, sampled, ds, scorer=self.scorer)
-                )
+                results.append(self.evaluator.evaluate(strat, cfg, sampled, ds, scorer=self.scorer))
 
         if not results:
             raise RuntimeError("No evaluation results; check strategy names and filters")

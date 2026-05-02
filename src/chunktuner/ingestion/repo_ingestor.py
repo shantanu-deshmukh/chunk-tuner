@@ -9,9 +9,7 @@ from chunktuner.ingestion.content_type import detect_content_type
 from chunktuner.ingestion.preprocessor import preprocess
 from chunktuner.models import ContentType, Document
 
-_BAD_PARTS = frozenset(
-    {"node_modules", "__pycache__", ".git", "dist", "build", ".venv", "venv"}
-)
+_BAD_PARTS = frozenset({"node_modules", "__pycache__", ".git", "dist", "build", ".venv", "venv"})
 
 _EXT_LANG = {
     ".py": "python",

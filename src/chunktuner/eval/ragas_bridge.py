@@ -6,6 +6,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+_UNAVAILABLE: dict[str, float | None] = {
+    "faithfulness": None,
+    "answer_relevancy": None,
+}
+
 
 class RagasBridge:
     def __init__(self, llm_client: object | None = None):
@@ -17,16 +22,18 @@ class RagasBridge:
         contexts: list[list[str]],
         answers: list[str],
         ground_truths: list[str],
-    ) -> dict[str, float]:
-        """Return averaged metrics, or ``{}`` if RAGAS cannot run in this environment."""
+    ) -> dict[str, float | None]:
+        """Return averaged metrics, or sentinel Nones if RAGAS cannot run."""
         try:
             from datasets import Dataset
-
             from ragas import evaluate
             from ragas.metrics import answer_relevancy, faithfulness
-        except Exception as e:  # pragma: no cover
-            logger.warning("RAGAS import failed (%s); skipping generation metrics", e)
-            return {}
+        except ImportError as exc:  # pragma: no cover
+            logger.warning("RAGAS not installed (%s). Install: uv add 'chunktuner[ragas]'", exc)
+            return dict(_UNAVAILABLE)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("RAGAS import failed (%s); skipping generation metrics", exc)
+            return dict(_UNAVAILABLE)
 
         try:
             rows = []
@@ -42,12 +49,12 @@ class RagasBridge:
             ds = Dataset.from_list(rows)
             result = evaluate(ds, metrics=[faithfulness, answer_relevancy])
             df = result.to_pandas()
-            out: dict[str, float] = {}
+            out: dict[str, float | None] = dict(_UNAVAILABLE)
             if "faithfulness" in df.columns:
                 out["faithfulness"] = float(df["faithfulness"].mean())
             if "answer_relevancy" in df.columns:
                 out["answer_relevancy"] = float(df["answer_relevancy"].mean())
             return out
-        except Exception as e:  # pragma: no cover
-            logger.warning("RAGAS evaluate failed: %s", e)
-            return {}
+        except Exception as exc:  # pragma: no cover
+            logger.warning("RAGAS computation failed: %s", exc)
+            return dict(_UNAVAILABLE)

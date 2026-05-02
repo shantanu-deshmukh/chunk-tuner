@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import random
 import re
 import uuid
@@ -12,6 +13,8 @@ import tiktoken
 import yaml
 
 from chunktuner.models import Document, EvalDataset, EvalQuery
+
+logger = logging.getLogger(__name__)
 
 
 def _token_f1(enc: tiktoken.Encoding, a: str, b: str) -> float:
@@ -82,14 +85,18 @@ class DatasetBuilder:
                 '{"queries":[{"question":str,"start":int,"end":int,"reference_answer":str}]}\n\n'
                 f"DOCUMENT:\n{snippet}"
             )
-            resp = litellm.completion(
-                model=self.llm_model,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-                temperature=0.2,
-            )
-            raw = resp.choices[0].message.content or "{}"
-            payload = json.loads(raw)
+            try:
+                resp = litellm.completion(
+                    model=self.llm_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"},
+                    temperature=0.2,
+                )
+                raw = resp.choices[0].message.content or "{}"
+                payload = json.loads(raw)
+            except Exception as exc:
+                logger.warning("Dataset generation failed for doc %s: %s", d.id, exc)
+                continue
             rows = payload.get("queries", payload) if isinstance(payload, dict) else payload
             if not isinstance(rows, list):
                 rows = []
@@ -118,6 +125,12 @@ class DatasetBuilder:
                     break
             if len(queries) >= max_queries:
                 break
+        if len(queries) < 20:
+            logger.warning(
+                "Only %d valid eval queries generated (minimum recommended: 20). "
+                "Results may be noisy.",
+                len(queries),
+            )
         return EvalDataset(name="llm_generated", queries=queries, source="llm_generated")
 
     def build_code_function_qa(self, docs: list[Document], *, max_queries: int = 40) -> EvalDataset:

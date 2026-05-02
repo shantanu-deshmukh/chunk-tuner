@@ -22,7 +22,7 @@ def mp_evaluate_task(task: dict) -> dict:
     ev = Evaluator(
         fn,
         top_k=int(task.get("top_k", 5)),
-        enable_generation_metrics=False,
+        enable_generation_metrics=bool(task.get("enable_generation_metrics", False)),
     )
     res = ev.evaluate(strat, cfg, docs, ds, scorer=ScoreCalculator(task["use_case"]))
     return res.model_dump()

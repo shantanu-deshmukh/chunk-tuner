@@ -6,6 +6,7 @@ from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -56,6 +57,7 @@ class CodeWindowStrategy:
             if j >= len(lines):
                 break
             i = max(i + 1, j - overlap_lines)
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def param_schema(self) -> dict[str, Any]:

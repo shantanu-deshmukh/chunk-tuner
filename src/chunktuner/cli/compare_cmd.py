@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import cast
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from chunktuner.chunking import default_registry
 from chunktuner.cli.common import load_workspace_path
@@ -16,8 +18,6 @@ from chunktuner.eval.score_calculator import ScoreCalculator
 from chunktuner.eval.trivial_dataset import trivial_dataset_for_docs
 from chunktuner.ingestion.file_ingestor import FileIngestor
 from chunktuner.models import ChunkConfig, UseCase
-from rich.console import Console
-from rich.table import Table
 
 console = Console()
 
@@ -80,7 +80,11 @@ def register(app: typer.Typer) -> None:
             table.add_row(*[str(r[k]) for k in rows[0].keys()])
         console.print(table)
         if report:
-            lines = ["# Chunking comparison\n", f"Path: `{path}`\n\n", "| " + " | ".join(rows[0].keys()) + " |\n"]
+            lines = [
+                "# Chunking comparison\n",
+                f"Path: `{path}`\n\n",
+                "| " + " | ".join(rows[0].keys()) + " |\n",
+            ]
             lines.append("| " + " | ".join("---" for _ in rows[0]) + " |\n")
             for r in rows:
                 lines.append("| " + " | ".join(str(r[k]) for k in rows[0].keys()) + " |\n")

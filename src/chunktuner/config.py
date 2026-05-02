@@ -46,7 +46,7 @@ def load_workspace_config(path: Path | None) -> WorkspaceConfig:
 
 
 def default_cache_dir() -> Path:
-    override = os.environ.get("OSCHUNKER_CACHE_DIR") or os.environ.get("CHUNK_TUNER_CACHE_DIR")
+    override = os.environ.get("CHUNKTUNER_CACHE_DIR")
     if override:
         return Path(override).expanduser()
     return Path.home() / ".cache" / "chunktuner"

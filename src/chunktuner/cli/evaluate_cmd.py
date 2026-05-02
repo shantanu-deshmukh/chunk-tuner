@@ -54,6 +54,14 @@ def register(app: typer.Typer) -> None:
         root = path.resolve().parent if path.is_file() else path.resolve()
         fi = FileIngestor(root=root)
         docs = fi.ingest_path(path) if path.is_file() else fi.ingest_dir(path)
+        if not docs:
+            exts = ", ".join(sorted(FileIngestor.SUPPORTED_EXTENSIONS))
+            typer.secho(
+                f"No supported documents found in {path}.\nSupported extensions: {exts}",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
         docs = docs[:max_docs]
         ds = trivial_dataset_for_docs(docs)
         names = [s.strip() for s in strategies.split(",") if s.strip()]

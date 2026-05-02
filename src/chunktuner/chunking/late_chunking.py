@@ -20,7 +20,9 @@ class LateChunkingStrategy:
         self._inner = FixedTokenStrategy(encoding_name=encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
-        max_tokens = int(config.params.get("chunk_size_tokens", config.params.get("max_tokens", 256)))
+        max_tokens = int(
+            config.params.get("chunk_size_tokens", config.params.get("max_tokens", 256))
+        )
         overlap = int(config.params.get("overlap_tokens", 0))
         return self._inner.chunk(
             doc,

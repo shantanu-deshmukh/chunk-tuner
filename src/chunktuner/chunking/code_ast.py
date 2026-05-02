@@ -6,6 +6,7 @@ from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -29,7 +30,9 @@ class CodeASTStrategy:
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         max_tokens = int(config.params.get("max_tokens", 512))
         if self._parser is None or (doc.language or "").lower() not in ("", "python", "py"):
-            return self._fallback().chunk(doc, config)
+            out = self._fallback().chunk(doc, config)
+            validate_chunk_offsets(doc, out)
+            return out
         b = doc.content.encode("utf8")
         tree = self._parser.parse(b)
         root = tree.root_node
@@ -41,8 +44,8 @@ class CodeASTStrategy:
                 continue
             start_b, end_b = child.start_byte, child.end_byte
             start_c = len(b[:start_b].decode("utf8"))
-            text = b[start_b:end_b].decode("utf8")
-            end_c = start_c + len(text)
+            end_c = len(b[:end_b].decode("utf8"))
+            text = doc.content[start_c:end_c]
             if len(self._enc.encode(text)) > max_tokens:
                 subdoc = Document(
                     id=doc.id,
@@ -54,7 +57,9 @@ class CodeASTStrategy:
                 )
                 for c in self._fallback().chunk(
                     subdoc,
-                    ChunkConfig(name="code_window", params={"max_tokens": max_tokens, "overlap_lines": 2}),
+                    ChunkConfig(
+                        name="code_window", params={"max_tokens": max_tokens, "overlap_lines": 2}
+                    ),
                 ):
                     chunks.append(
                         Chunk(
@@ -80,7 +85,10 @@ class CodeASTStrategy:
             )
             idx += 1
         if not chunks:
-            return self._fallback().chunk(doc, config)
+            out = self._fallback().chunk(doc, config)
+            validate_chunk_offsets(doc, out)
+            return out
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def _fallback(self):

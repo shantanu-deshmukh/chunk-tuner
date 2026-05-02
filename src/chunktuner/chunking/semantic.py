@@ -6,6 +6,7 @@ from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -42,6 +43,7 @@ class SemanticStrategy:
             overlap = int(max_tokens * thr) if thr > 0 else None
         text = doc.content
         if not text:
+            validate_chunk_offsets(doc, [])
             return []
         out = semchunk.chunk(
             text,
@@ -55,7 +57,11 @@ class SemanticStrategy:
         for idx, (piece, (a, b)) in enumerate(zip(pieces, offsets, strict=True)):
             slice_text = text[a:b]
             if slice_text != piece:
-                slice_text = piece
+                raise ValueError(
+                    f"semchunk offset mismatch at [{a}:{b}]: "
+                    f"expected {piece[:40]!r}, got {slice_text[:40]!r}. "
+                    "This is a semchunk bug — please report it."
+                )
             chunks.append(
                 Chunk(
                     id=f"{doc.id}_sem_{idx}",
@@ -66,6 +72,7 @@ class SemanticStrategy:
                     tokens=self._count(slice_text),
                 )
             )
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def param_schema(self) -> dict[str, Any]:

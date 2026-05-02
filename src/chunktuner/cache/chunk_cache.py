@@ -41,7 +41,9 @@ class ChunkCache:
         data = json.loads(row[0])
         return [Chunk.model_validate(x) for x in data]
 
-    def set(self, doc: Document, strategy_name: str, config: ChunkConfig, chunks: list[Chunk]) -> None:
+    def set(
+        self, doc: Document, strategy_name: str, config: ChunkConfig, chunks: list[Chunk]
+    ) -> None:
         payload = json.dumps([c.model_dump() for c in chunks])
         self._conn.execute(
             "INSERT OR REPLACE INTO chunks (k, payload) VALUES (?, ?)",
@@ -61,3 +63,9 @@ class ChunkCache:
 
     def close(self) -> None:
         self._conn.close()
+
+    def __enter__(self) -> ChunkCache:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()

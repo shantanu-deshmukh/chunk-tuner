@@ -8,6 +8,7 @@ from typing import Any
 import tiktoken
 
 from chunktuner.chunking.semantic import _require_semchunk
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 _HEADING = re.compile(r"(?m)^#{1,3}\s+\S")
@@ -43,6 +44,7 @@ class MarkdownSemanticStrategy:
         overlap = int(config.params.get("overlap_tokens", 0))
         text = doc.content
         if not text:
+            validate_chunk_offsets(doc, [])
             return []
         chunks: list[Chunk] = []
         idx = 0
@@ -63,7 +65,11 @@ class MarkdownSemanticStrategy:
                 b = sec_a + lb
                 slice_text = text[a:b]
                 if slice_text != piece:
-                    slice_text = piece
+                    raise ValueError(
+                        f"semchunk offset mismatch at [{a}:{b}]: "
+                        f"expected {piece[:40]!r}, got {slice_text[:40]!r}. "
+                        "This is a semchunk bug — please report it."
+                    )
                 chunks.append(
                     Chunk(
                         id=f"{doc.id}_mdsem_{idx}",
@@ -76,6 +82,7 @@ class MarkdownSemanticStrategy:
                     )
                 )
                 idx += 1
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def param_schema(self) -> dict[str, Any]:

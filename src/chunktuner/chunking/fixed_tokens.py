@@ -6,6 +6,7 @@ from typing import Any
 
 import tiktoken
 
+from chunktuner.chunking.validation import validate_chunk_offsets
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -53,6 +54,7 @@ class FixedTokenStrategy:
             if j >= len(ids):
                 break
             i += step
+        validate_chunk_offsets(doc, chunks)
         return chunks
 
     def _token_char_boundaries(self, text: str, ids: list[int]) -> list[int]:
