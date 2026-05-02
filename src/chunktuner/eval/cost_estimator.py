@@ -7,6 +7,8 @@ from chunktuner.models import CostEstimate, Document
 
 
 class CostEstimator:
+    """Heuristic token counts and USD estimates without calling embedding or LLM APIs."""
+
     def estimate(
         self,
         docs: list[Document],

@@ -11,6 +11,8 @@ from chunktuner.models import Chunk, ChunkConfig, Document
 
 
 class CodeASTStrategy:
+    """Python tree-sitter top-level definitions, with token-capped fallback splits."""
+
     name = "code_ast"
     supported_content_types = ["code"]
     description = "Top-level functions/classes as chunks (Python via tree-sitter)."
@@ -28,6 +30,7 @@ class CodeASTStrategy:
             pass
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Emit function/class chunks for Python AST; non-Python falls back to line windows."""
         max_tokens = int(config.params.get("max_tokens", 512))
         if self._parser is None or (doc.language or "").lower() not in ("", "python", "py"):
             out = self._fallback().chunk(doc, config)

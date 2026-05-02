@@ -12,7 +12,10 @@ from chunktuner.models import Document
 
 
 class URLIngestor:
+    """Fetch HTTP(S) resources into a single `Document` (HTML preprocessed to text)."""
+
     def ingest_url(self, url: str, *, timeout: float = 30.0) -> Document:
+        """GET ``url`` and map response body to ``text`` / ``markdown`` / ``html`` content."""
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(f"Unsupported URL scheme: {parsed.scheme}")

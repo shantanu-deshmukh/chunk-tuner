@@ -7,6 +7,8 @@ from chunktuner.models import EmbeddingFunction
 
 
 class CachedEmbeddingFunction:
+    """Delegates to ``inner`` while reading/writing vectors through `EmbeddingCache`."""
+
     def __init__(self, inner: EmbeddingFunction, cache: EmbeddingCache):
         self._inner = inner
         self._cache = cache

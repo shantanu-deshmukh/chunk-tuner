@@ -13,6 +13,8 @@ _UNAVAILABLE: dict[str, float | None] = {
 
 
 class RagasBridge:
+    """Thin adapter around RAGAS ``faithfulness`` and ``answer_relevancy`` (optional extra)."""
+
     def __init__(self, llm_client: object | None = None):
         self.llm_client = llm_client
 

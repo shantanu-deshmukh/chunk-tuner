@@ -12,6 +12,8 @@ from chunktuner.models import Chunk, ChunkConfig, Document
 
 
 class StructuralSemanticStrategy:
+    """Coarse `PdfStructuralStrategy` regions refined with fixed-token sub-windows."""
+
     name = "structural_semantic"
     supported_content_types = ["pdf", "docx", "pptx", "markdown"]
     description = "PdfStructural regions, subdivided by fixed token windows when regions are large."
@@ -22,6 +24,7 @@ class StructuralSemanticStrategy:
         self._struct = PdfStructuralStrategy(encoding_name=encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Map structural regions to absolute-offset sub-chunks using `FixedTokenStrategy`."""
         max_tokens = max(32, int(config.params.get("max_tokens", 512)))
         overlap = int(config.params.get("overlap_tokens", 0))
         coarse = dict(config.params)

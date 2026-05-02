@@ -12,6 +12,8 @@ DatasetSource = Literal["llm_generated", "user_provided"]
 
 
 class Document(BaseModel):
+    """Ingested unit of text (file, URL, or synthetic) passed to chunking and evaluation."""
+
     id: str
     content: str
     content_type: ContentType
@@ -24,6 +26,8 @@ class Document(BaseModel):
 
 
 class Chunk(BaseModel):
+    """Text span within a `Document`; offsets must satisfy ``doc.content[start:end] == text``."""
+
     id: str
     document_id: str
     text: str
@@ -44,12 +48,16 @@ class Chunk(BaseModel):
 
 
 class ChunkConfig(BaseModel):
+    """Named strategy plus strategy-specific hyperparameters (``params``)."""
+
     name: str
     params: dict = Field(default_factory=dict)
 
 
 @runtime_checkable
 class ChunkingStrategy(Protocol):
+    """Pluggable chunker: exposes metadata, ``chunk()``, parameter schema, and search grid."""
+
     name: str
     supported_content_types: list[str]
     description: str
@@ -76,6 +84,8 @@ class EvalDataset(BaseModel):
 
 
 class EvalMetrics(BaseModel):
+    """Retrieval and optional generation metrics aggregated for one strategy run."""
+
     token_iou: float = 0.0
     token_precision: float = 0.0
     token_recall: float = 0.0
@@ -93,6 +103,8 @@ class EvalMetrics(BaseModel):
 
 
 class EvalResult(BaseModel):
+    """Outcome of evaluating one ``(strategy, ChunkConfig)`` on a corpus and dataset."""
+
     strategy_name: str
     config: ChunkConfig
     embedding_profile: str
@@ -101,6 +113,8 @@ class EvalResult(BaseModel):
 
 
 class Recommendation(BaseModel):
+    """Ranked evaluation results from tuning, including the best config and optional baseline."""
+
     content_type: str
     use_case: UseCase
     embedding_profile: str
@@ -118,6 +132,8 @@ class CostEstimate(BaseModel):
 
 
 class EmbeddingFunction(Protocol):
+    """Embeds chunk texts and queries; ``profile_name`` labels the model or dummy profile."""
+
     profile_name: str
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]: ...

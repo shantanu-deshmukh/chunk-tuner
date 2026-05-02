@@ -4,6 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/chunktuner.svg)](https://pypi.org/project/chunktuner/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/shantanudeshmukh/chunktuner/actions/workflows/ci.yml/badge.svg)](https://github.com/shantanudeshmukh/chunktuner/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://shantanu-deshmukh.github.io/chunk-tuner/)
 
 Auto chunking tuner and MCP server for RAG pipelines.
 
@@ -51,11 +52,11 @@ chunk-tune recommend ./my_docs --use-case rag_qa
 
 ```python
 from pathlib import Path
-from chunktuner import FileIngestor, OpenAIEmbeddingFunction, AutoTuner
+from chunktuner import FileIngestor, LiteLLMEmbeddingFunction, AutoTuner
 from chunktuner import default_registry, Evaluator, ScoreCalculator
 
 docs = FileIngestor().ingest_dir(Path("./my_docs"))
-embedding_fn = OpenAIEmbeddingFunction(model="text-embedding-3-small")
+embedding_fn = LiteLLMEmbeddingFunction("text-embedding-3-small")
 tuner = AutoTuner(
     strategies=default_registry,
     evaluator=Evaluator(embedding_fn),

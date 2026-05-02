@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{# Site nav: left column (lg+) with collapse toggle; top navbar for <lg. #}
+
+{% macro ct_sidenav(items, depth=0) %}
+<ul class="nav flex-column{% if depth %} ps-2 mt-1 border-start{% endif %}">
+  {%- for nav_item in items %}
+  <li class="nav-item text-break">
+    {%- if nav_item.children %}
+      {%- if nav_item.url %}
+        <a href="{{ nav_item.url|url }}" class="nav-link py-1 px-2{% if nav_item.active %} active" aria-current="page{% endif %}">{{ nav_item.title }}</a>
+      {%- else %}
+        <span class="nav-link py-1 px-2 text-secondary fw-semibold small">{{ nav_item.title }}</span>
+      {%- endif %}
+      {{ ct_sidenav(nav_item.children, depth + 1) }}
+    {%- else %}
+      <a href="{{ nav_item.url|url }}" class="nav-link py-1 px-2{% if nav_item.active %} active" aria-current="page{% endif %}">{{ nav_item.title }}</a>
+    {%- endif %}
+  </li>
+  {%- endfor %}
+</ul>
+{% endmacro %}
+
+{% block site_nav %}
+  {%- if nav|length > 1 %}
+  <div class="d-lg-none w-100">
+    <ul class="nav navbar-nav">
+      {%- for nav_item in nav %}
+        {%- if nav_item.children %}
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle{% if nav_item.active %} active" aria-current="page{% endif %}" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ nav_item.title }}</a>
+            <ul class="dropdown-menu">
+              {%- for nav_item in nav_item.children %}
+                {% include "nav-sub.html" %}
+              {%- endfor %}
+            </ul>
+          </li>
+        {%- else %}
+          <li class="nav-item">
+            <a href="{{ nav_item.url|url }}" class="nav-link{% if nav_item.active %} active" aria-current="page{% endif %}">{{ nav_item.title }}</a>
+          </li>
+        {%- endif %}
+      {%- endfor %}
+    </ul>
+  </div>
+  {%- endif %}
+{% endblock %}
+
+{% block content %}
+<div class="col-12">
+  <div class="d-flex flex-nowrap ct-doc-layout w-100" id="ct-doc-layout">
+    <nav class="ct-sidebar-shell d-none d-lg-flex flex-column flex-shrink-0 border-end bg-body-tertiary" aria-label="Site navigation">
+      <div class="ct-sidebar-header d-flex align-items-center justify-content-between gap-2 px-2 py-2 border-bottom">
+        <span class="ct-sidebar-title small text-uppercase text-secondary text-truncate">{{ config.site_name }}</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary ct-sidebar-toggle flex-shrink-0" aria-expanded="true" aria-controls="ct-sidebar-nav-panel" aria-label="Collapse site navigation">
+          <span class="ct-sidebar-toggle-expanded" aria-hidden="true"><i class="fa-solid fa-angles-left"></i></span>
+          <span class="ct-sidebar-toggle-collapsed d-none" aria-hidden="true"><i class="fa-solid fa-angles-right"></i></span>
+        </button>
+      </div>
+      <div id="ct-sidebar-nav-panel" class="ct-sidenav-scroll flex-grow-1 py-2 px-2">
+        {{ ct_sidenav(nav) }}
+      </div>
+    </nav>
+    <main class="flex-grow-1 min-vw-0 py-3 px-3" role="main">
+      {% include "content.html" %}
+    </main>
+    <aside class="ct-toc-shell d-none d-xl-block flex-shrink-0 border-start" aria-label="Page contents">
+      <div class="sticky-xl-top py-3 px-2 ct-toc-scroll">
+        {% include "toc.html" %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

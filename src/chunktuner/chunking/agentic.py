@@ -33,6 +33,8 @@ def _fuzzy_token_match(
 
 
 class AgenticStrategy:
+    """LLM proposes UTF-8 character spans; validates offsets against ``doc.content``."""
+
     name = "agentic"
     supported_content_types = ["text", "markdown"]
     description = "Uses an LLM to propose chunk spans; requires API access and ``litellm``."
@@ -41,6 +43,7 @@ class AgenticStrategy:
         self._enc = tiktoken.get_encoding(encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Call LiteLLM JSON mode to obtain ``start_offset`` / ``end_offset`` chunk list."""
         import litellm
 
         model = str(config.params.get("model", "gpt-4o-mini"))

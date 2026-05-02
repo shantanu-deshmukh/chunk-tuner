@@ -13,6 +13,8 @@ _DEFAULT_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 
 
 class RecursiveCharacterStrategy:
+    """Hierarchical character splits (paragraphs, lines, sentences) with overlap."""
+
     name = "recursive_character"
     supported_content_types = ["text", "markdown", "html"]
     description = "Splits on hierarchical separators up to chunk_size_chars with overlap."
@@ -21,6 +23,7 @@ class RecursiveCharacterStrategy:
         self._enc = tiktoken.get_encoding(encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Produce overlapping spans by splitting on ``separators`` up to ``chunk_size_chars``."""
         chunk_size = int(config.params.get("chunk_size_chars", 1600))
         overlap = int(config.params.get("chunk_overlap_chars", 0))
         separators: list[str] = list(config.params.get("separators", _DEFAULT_SEPARATORS))

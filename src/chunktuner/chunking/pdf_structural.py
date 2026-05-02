@@ -15,6 +15,8 @@ _SECTION = re.compile(r"(?m)^#{1,2}\s+\S.*$")
 
 
 class PdfStructuralStrategy:
+    """Page or section headings define regions; long regions are split by character cap."""
+
     name = "pdf_structural"
     supported_content_types = ["pdf", "markdown", "html"]
     description = (
@@ -38,6 +40,7 @@ class PdfStructuralStrategy:
         return spans
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Emit one chunk per sub-region up to ``max_region_chars`` within each structural span."""
         text = doc.content
         if not text:
             return []

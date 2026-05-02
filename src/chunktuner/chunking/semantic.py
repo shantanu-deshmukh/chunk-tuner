@@ -21,6 +21,8 @@ def _require_semchunk():
 
 
 class SemanticStrategy:
+    """Token-budget chunks via optional ``semchunk`` (install ``chunktuner[semantic]``)."""
+
     name = "semantic"
     supported_content_types = ["text", "markdown", "html"]
     description = "Hierarchical semantic-friendly splits via semchunk + tiktoken sizing."
@@ -33,6 +35,7 @@ class SemanticStrategy:
         return len(self._enc.encode(text))
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Chunk ``doc.content`` with semchunk using ``max_tokens`` / overlap settings."""
         semchunk = _require_semchunk()
         max_tokens = max(16, int(config.params.get("max_tokens", 512)))
         ot = config.params.get("overlap_tokens")

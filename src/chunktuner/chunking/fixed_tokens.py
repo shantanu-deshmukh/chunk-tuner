@@ -11,6 +11,8 @@ from chunktuner.models import Chunk, ChunkConfig, Document
 
 
 class FixedTokenStrategy:
+    """Sliding tiktoken windows with optional overlap (baseline RAG chunker)."""
+
     name = "fixed_tokens"
     supported_content_types = ["text", "markdown", "html"]
     description = "Sliding windows of max_tokens with overlap_tokens (tiktoken)."
@@ -20,6 +22,7 @@ class FixedTokenStrategy:
         self._enc = tiktoken.get_encoding(encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Split ``doc.content`` into fixed-size token spans with correct char offsets."""
         max_tokens = int(config.params.get("max_tokens", 512))
         overlap = int(config.params.get("overlap_tokens", 0))
         max_tokens = max(1, max_tokens)

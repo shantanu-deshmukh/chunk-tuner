@@ -26,6 +26,8 @@ def _embed_task_fields(embedding_fn: object) -> dict:
 
 
 class AutoTuner:
+    """Runs a parameter grid over registered strategies and ranks `EvalResult` scores."""
+
     def __init__(
         self,
         strategies: StrategyRegistry,
@@ -53,6 +55,37 @@ class AutoTuner:
         parallel: bool = False,
         max_workers: int = 4,
     ) -> Recommendation:
+        """Run full tuning and return the best chunking config.
+
+        Evaluates strategies (optionally filtered) across each strategy's param grid
+        or a custom ``param_grid``, scores each run, and returns a ranked
+        `Recommendation`.
+
+        Args:
+            docs: Ingested documents to tune against.
+            use_case: Scoring profile (e.g. ``rag_qa``, ``search``, ``summarization``,
+                ``code_assist``).
+            content_type: If set, selects strategies for this content type; otherwise
+                inferred from ``docs[0]``.
+            strategies: Subset of registered strategy names; ``None`` means all
+                compatible with the content type.
+            param_grid: Optional map ``strategy_name -> list[params dict]`` overriding
+                ``default_param_grid()``.
+            max_docs: Cap documents used (after sampling order); ``None`` uses all.
+            embedding_profile: Override label stored on results; default from evaluator.
+            dataset: Optional `EvalDataset`; default is `trivial_dataset_for_docs`.
+            baseline: When True and ``fixed_tokens`` is registered, evaluates a simple
+                baseline config first.
+            parallel: Use a process pool for independent evaluations.
+            max_workers: Worker count when ``parallel`` is True.
+
+        Returns:
+            `Recommendation` with best config, ranked results, and optional baseline.
+
+        Raises:
+            ValueError: If ``docs`` is empty or ``strategies`` contains unknown names.
+            RuntimeError: If no evaluation results were produced.
+        """
         if not docs:
             raise ValueError("No documents to tune on")
 

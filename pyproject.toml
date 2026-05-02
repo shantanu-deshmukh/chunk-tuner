@@ -41,6 +41,13 @@ ragas = ["ragas>=0.1"]
 semantic = ["semchunk>=1.0"]
 code = ["tree-sitter>=0.22", "tree-sitter-python", "tree-sitter-javascript"]
 all = ["chunktuner[mcp,docling,ragas,semantic,code]"]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+    "mkdocstrings[python]>=0.25",
+    "pymdown-extensions>=10.0",
+]
 
 [project.scripts]
 chunk-tune = "chunktuner.cli:app"

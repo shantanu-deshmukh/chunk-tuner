@@ -9,6 +9,8 @@ from chunktuner.models import Chunk, ChunkConfig, Document
 
 
 class LateChunkingStrategy:
+    """Placeholder: delegates to fixed token windows until true late pooling is wired."""
+
     name = "late_chunking"
     supported_content_types = ["text", "markdown"]
     description = (
@@ -20,6 +22,7 @@ class LateChunkingStrategy:
         self._inner = FixedTokenStrategy(encoding_name=encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Chunk with inner `FixedTokenStrategy` using ``chunk_size_tokens`` / overlap."""
         max_tokens = int(
             config.params.get("chunk_size_tokens", config.params.get("max_tokens", 256))
         )

@@ -15,6 +15,8 @@ _HEADING = re.compile(r"(?m)^#{1,3}\s+\S")
 
 
 class MarkdownSemanticStrategy:
+    """Markdown headings define sections; each section is semchunk-split by token budget."""
+
     name = "markdown_semantic"
     supported_content_types = ["markdown"]
     description = "Heading-aware sections, then semchunk token windows inside each section."
@@ -39,6 +41,7 @@ class MarkdownSemanticStrategy:
         return spans
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Chunk per heading section then merge semchunk spans with stable offsets."""
         semchunk = _require_semchunk()
         max_tokens = max(16, int(config.params.get("max_tokens", 512)))
         overlap = int(config.params.get("overlap_tokens", 0))

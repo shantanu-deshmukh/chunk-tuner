@@ -7,11 +7,14 @@ from chunktuner.models import EvalMetrics
 
 
 class ScoreCalculator:
+    """Weighted sum of `EvalMetrics` fields for a use-case profile."""
+
     def __init__(self, use_case: str, custom_weights: dict[str, float] | None = None):
         self.use_case = use_case
         self.weights = dict(custom_weights) if custom_weights else score_profile_weights(use_case)
 
     def score(self, metrics: EvalMetrics) -> float:
+        """Return a scalar score from weighted metric contributions (missing keys skipped)."""
         total = 0.0
         for key, w in self.weights.items():
             val = _metric_value(metrics, key)

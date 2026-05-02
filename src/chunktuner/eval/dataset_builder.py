@@ -32,11 +32,14 @@ def _token_f1(enc: tiktoken.Encoding, a: str, b: str) -> float:
 
 
 class DatasetBuilder:
+    """Build `EvalDataset` from user files or LLM-generated Q&A over documents."""
+
     def __init__(self, llm_model: str = "gpt-4o-mini"):
         self.llm_model = llm_model
         self._enc = tiktoken.get_encoding("cl100k_base")
 
     def build_from_user_file(self, path: Path) -> EvalDataset:
+        """Parse JSON or YAML with a ``queries`` list into an `EvalDataset` (user-provided)."""
         raw = path.read_text(encoding="utf-8")
         if path.suffix.lower() in {".yaml", ".yml"}:
             data = yaml.safe_load(raw)

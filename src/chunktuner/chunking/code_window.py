@@ -11,6 +11,8 @@ from chunktuner.models import Chunk, ChunkConfig, Document
 
 
 class CodeWindowStrategy:
+    """Greedy batches of source lines capped by tiktoken count (code baseline)."""
+
     name = "code_window"
     supported_content_types = ["code"]
     description = "Greedy line batches capped by max_tokens (tiktoken)."
@@ -19,6 +21,7 @@ class CodeWindowStrategy:
         self._enc = tiktoken.get_encoding(encoding_name)
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
+        """Walk lines accumulating tokens until ``max_tokens``, with ``overlap_lines`` rewind."""
         max_tokens = max(16, int(config.params.get("max_tokens", 512)))
         overlap_lines = max(0, int(config.params.get("overlap_lines", 2)))
         lines = doc.content.splitlines(keepends=True)

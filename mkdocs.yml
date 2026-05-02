@@ -1,0 +1,60 @@
+site_name: chunktuner
+site_url: https://shantanu-deshmukh.github.io/chunk-tuner/
+site_description: Auto chunking tuner and MCP server for RAG pipelines
+site_author: Shantanu Deshmukh
+repo_url: https://github.com/shantanu-deshmukh/chunk-tuner
+repo_name: shantanu-deshmukh/chunk-tuner
+edit_uri: edit/main/docs/
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - js/sidebar-toggle.js
+
+theme:
+  name: mkdocs
+  custom_dir: theme_custom
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - scripts/gen_api_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            separate_signature: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+
+nav:
+  - ... | SUMMARY.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:pymdownx.emoji.gemoji
+      emoji_generator: !!python/name:pymdownx.emoji.to_png
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true

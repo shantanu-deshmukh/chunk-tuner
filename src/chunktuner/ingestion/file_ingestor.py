@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 class FileIngestor:
+    """Load `Document` records from filesystem paths (single file or directory tree)."""
+
     SUPPORTED_EXTENSIONS = {
         ".txt": "text",
         ".md": "markdown",
@@ -62,6 +64,7 @@ class FileIngestor:
         *,
         content_type_override: str | None = None,
     ) -> list[Document]:
+        """Ingest a single file or expand a directory via `ingest_dir`."""
         path = self._ensure_under_root(path)
         if not path.exists():
             raise FileNotFoundError(path)
@@ -70,6 +73,7 @@ class FileIngestor:
         return self._ingest_file_multi(path, content_type_override=content_type_override)
 
     def ingest_dir(self, path: Path, glob: str = "**/*") -> list[Document]:
+        """Walk ``path`` with ``glob`` and ingest every file with a supported extension."""
         path = self._ensure_under_root(path)
         docs: list[Document] = []
         for p in sorted(path.glob(glob)):

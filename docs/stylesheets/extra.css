@@ -1,0 +1,130 @@
+/* Collapsible site sidebar (default mkdocs theme + theme_custom/main.html) */
+:root {
+  --ct-sidebar-expanded: min(280px, 32vw);
+  --ct-sidebar-collapsed: 2.75rem;
+  --ct-toc-w: min(280px, 26vw);
+}
+
+.ct-doc-layout {
+  min-height: min(70vh, calc(100vh - 6rem));
+}
+
+.ct-sidebar-shell {
+  width: var(--ct-sidebar-expanded);
+  min-width: var(--ct-sidebar-expanded);
+  max-width: var(--ct-sidebar-expanded);
+  transition:
+    width 0.22s ease,
+    min-width 0.22s ease,
+    max-width 0.22s ease;
+}
+
+.ct-doc-layout.ct-sidebar-collapsed .ct-sidebar-shell {
+  width: var(--ct-sidebar-collapsed);
+  min-width: var(--ct-sidebar-collapsed);
+  max-width: var(--ct-sidebar-collapsed);
+}
+
+.ct-doc-layout.ct-sidebar-collapsed .ct-sidebar-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ct-doc-layout.ct-sidebar-collapsed .ct-sidebar-header {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.35rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.ct-doc-layout.ct-sidebar-collapsed #ct-sidebar-nav-panel {
+  opacity: 0;
+  visibility: hidden;
+  height: 0;
+  min-height: 0;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#ct-sidebar-nav-panel {
+  transition: opacity 0.18s ease;
+}
+
+.ct-sidenav-scroll {
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+}
+
+.ct-toc-shell {
+  width: var(--ct-toc-w);
+  min-width: var(--ct-toc-w);
+}
+
+.ct-toc-scroll {
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+
+nav[aria-label="Site navigation"] .nav-link.active {
+  font-weight: 600;
+}
+
+/* Headings: calmer scale than stock mkdocs (~42px h1 + default BS headings) */
+main[role="main"] h1 {
+  font-size: clamp(1.75rem, 2.8vw, 2.125rem);
+  font-weight: 500;
+  line-height: 1.25;
+  margin-bottom: 0.75rem;
+}
+
+main[role="main"] h2 {
+  font-size: clamp(1.35rem, 2.1vw, 1.6rem);
+  font-weight: 500;
+  line-height: 1.3;
+  margin-top: 1.65rem;
+  margin-bottom: 0.6rem;
+}
+
+main[role="main"] h3 {
+  font-size: clamp(1.15rem, 1.75vw, 1.3rem);
+  font-weight: 500;
+  line-height: 1.35;
+  margin-top: 1.35rem;
+  margin-bottom: 0.45rem;
+}
+
+main[role="main"] h4 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.35;
+  margin-top: 1.15rem;
+  margin-bottom: 0.4rem;
+}
+
+main[role="main"] h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+main[role="main"] h6 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  margin-top: 0.85rem;
+  margin-bottom: 0.3rem;
+}

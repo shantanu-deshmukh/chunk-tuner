@@ -25,6 +25,8 @@ _EXT_LANG = {
 
 
 class RepoIngestor:
+    """Walk a repository tree into code or prose `Document` records (skips vendor dirs)."""
+
     def _skip(self, path: Path, root: Path) -> bool:
         rel = path.relative_to(root)
         if _BAD_PARTS.intersection(rel.parts):
@@ -34,6 +36,7 @@ class RepoIngestor:
         return False
 
     def ingest_repo(self, root: Path) -> list[Document]:
+        """Recursively ingest supported extensions under ``root``."""
         root = root.resolve()
         docs: list[Document] = []
         exts = {".py", ".js", ".ts", ".tsx", ".go", ".java", ".rs", ".cpp", ".c", ".md", ".txt"}

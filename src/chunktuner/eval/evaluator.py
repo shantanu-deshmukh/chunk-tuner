@@ -69,6 +69,8 @@ def _ndcg_at_k(rels: list[float], k: int) -> float:
 
 
 class Evaluator:
+    """Chunks documents, embeds text, runs retrieval metrics (and optional RAGAS)."""
+
     def __init__(
         self,
         embedding_fn: EmbeddingFunction,
@@ -101,6 +103,22 @@ class Evaluator:
         *,
         scorer: ScoreCalculator | None = None,
     ) -> EvalResult:
+        """Evaluate one strategy configuration on a document set and dataset.
+
+        Chunks each document, validates offsets, embeds chunks and dataset queries,
+        computes retrieval metrics per query, optionally generation metrics, and
+        assigns ``score`` when ``scorer`` is provided.
+
+        Args:
+            strategy: Registered chunking implementation.
+            config: Strategy name and parameters.
+            docs: Corpus (ids must match ``dataset`` references).
+            dataset: Queries and gold spans for scoring.
+            scorer: If set, used to populate `EvalResult.score`.
+
+        Returns:
+            `EvalResult` with `EvalMetrics` and composite score.
+        """
         docs_by_id = {d.id: d for d in docs}
         all_chunks: list[Chunk] = []
         for d in docs:
