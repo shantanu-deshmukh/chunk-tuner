@@ -81,17 +81,18 @@ print(result.best.config)
 
 ## MCP server (Claude Desktop)
 
+Python **FastMCP** (`chunk-tune-mcp`, stdio). No Node.js build. See `docs/mcp_setup.md`.
+
 Add to your `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "chunktuner": {
-      "command": "node",
-      "args": ["/path/to/chunktuner/mcp-server/dist/server.js"],
+      "command": "uvx",
+      "args": ["--from", "chunktuner[mcp]", "chunk-tune-mcp"],
       "env": {
-        "CHUNK_TUNER_BASE_DIR": "/path/to/your/corpus",
-        "CHUNK_TUNER_API_URL": "http://localhost:8765"
+        "CHUNK_TUNER_BASE_DIR": "/path/to/your/corpus"
       }
     }
   }

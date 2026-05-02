@@ -1,0 +1,63 @@
+"""``chunk-tune preview`` — inspect chunks for one strategy."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import typer
+
+from chunktuner.chunking import default_registry
+from chunktuner.models import ChunkConfig, Document
+
+
+def register(app: typer.Typer) -> None:
+    @app.command("preview")
+    def preview_cmd(
+        target: str = typer.Argument(..., help="File path or inline text"),
+        strategy: str = typer.Option(..., "--strategy", "-s", help="Strategy name"),
+        params_json: str = typer.Option(
+            "{}",
+            "--params",
+            help='JSON params object (e.g. {"max_tokens":256})',
+        ),
+        output_format: str = typer.Option("table", "--output-format"),
+    ) -> None:
+        """Chunk a single document and print chunk boundaries (no embeddings)."""
+        p = Path(target)
+        if p.is_file():
+            from chunktuner.ingestion.file_ingestor import FileIngestor
+
+            fi = FileIngestor(root=p.resolve().parent)
+            doc = fi.ingest_path(p)[0]
+        else:
+            doc = Document(id="preview-inline", content=target, content_type="text")
+
+        try:
+            params = json.loads(params_json)
+        except json.JSONDecodeError as e:
+            typer.echo(f"Invalid --params JSON: {e}", err=True)
+            raise typer.Exit(1) from e
+
+        strat = default_registry.get(strategy)
+        cfg = ChunkConfig(name=strategy, params=params)
+        chunks = strat.chunk(doc, cfg)
+        rows = [
+            {
+                "id": c.id,
+                "start_offset": c.start_offset,
+                "end_offset": c.end_offset,
+                "tokens": c.tokens,
+                "preview": (c.text[:120] + "...") if len(c.text) > 120 else c.text,
+            }
+            for c in chunks
+        ]
+        if output_format == "json":
+            typer.echo(json.dumps(rows, indent=2))
+        elif output_format == "yaml":
+            typer.echo(__import__("yaml").safe_dump(rows, sort_keys=False))
+        else:
+            for r in rows:
+                typer.echo(
+                    f"[{r['start_offset']}:{r['end_offset']}] tok={r['tokens']} {r['preview']!r}"
+                )

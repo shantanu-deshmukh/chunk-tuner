@@ -15,17 +15,21 @@ dependencies = [
     "numpy>=1.26",
     "tenacity>=8.0",
     "tiktoken>=0.7",
+    "pyyaml>=6.0.3",
+    "httpx>=0.28.1",
 ]
 
 [project.optional-dependencies]
+mcp = ["mcp[cli]>=1.7"]
 docling = ["docling>=2.0"]
 ragas = ["ragas>=0.1"]
 semantic = ["semchunk>=1.0"]
 code = ["tree-sitter>=0.22", "tree-sitter-python", "tree-sitter-javascript"]
-all = ["chunktuner[docling,ragas,semantic,code]"]
+all = ["chunktuner[mcp,docling,ragas,semantic,code]"]
 
 [project.scripts]
 chunk-tune = "chunktuner.cli:app"
+chunk-tune-mcp = "chunktuner.mcp.server:run"
 
 [build-system]
 requires = ["hatchling"]
@@ -35,13 +39,23 @@ build-backend = "hatchling.build"
 packages = ["src/chunktuner"]
 
 [tool.ruff]
-src = ["src"]
+src = ["src", "tests"]
 line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/chunktuner/cli/**/*.py" = ["B008"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+    "mcp[cli]>=1.7",
+]
