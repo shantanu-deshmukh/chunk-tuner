@@ -50,12 +50,13 @@ class AgenticStrategy:
         model = str(config.params.get("model", "gpt-4o-mini"))
         max_props = int(config.params.get("max_propositions", 40))
         content = doc.content
-        if len(content) > MAX_CHARS:
+        truncated = len(content) > MAX_CHARS
+        if truncated:
             logger.warning(
                 "AgenticStrategy: doc %r truncated from %d to %d chars. "
-                "Chunks beyond offset %d will be missing.",
+                "Content beyond offset %d will have no chunks.",
                 doc.id,
-                len(content),
+                len(doc.content),
                 MAX_CHARS,
                 MAX_CHARS,
             )
@@ -115,7 +116,15 @@ class AgenticStrategy:
                     params={"chunk_size_chars": 1200, "chunk_overlap_chars": 100},
                 ),
             )
+            if truncated:
+                for c in out:
+                    c.metadata["agentic_truncated"] = True
+                    c.metadata["agentic_truncated_at"] = MAX_CHARS
             return out
+        if truncated:
+            for c in chunks:
+                c.metadata["agentic_truncated"] = True
+                c.metadata["agentic_truncated_at"] = MAX_CHARS
         validate_chunk_offsets(doc, chunks)
         return chunks
 
