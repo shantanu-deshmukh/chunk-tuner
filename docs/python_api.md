@@ -108,7 +108,7 @@ rec = tuner.recommend(
 )
 ```
 
-`parallel=True` uses a process pool; embedding payloads must be picklable (see `tuner/mp_worker.py`).
+`parallel=True` uses a process pool; embedding payloads must be picklable (see the `AutoTuner` / parallel evaluation notes in the [API reference](api/tuner/auto_tuner.md)).
 
 ---
 
@@ -153,3 +153,4 @@ See [Metrics](metrics.md) for field meanings on `EvalMetrics` / `EvalResult`.
 
 - [API reference](api/index.md) — mkdocstrings module pages
 - [Configuration](configuration.md)
+- [Contributing](contributing.md) — changes upstream (strategies, tests, docs workflow)

@@ -62,3 +62,4 @@ uv add chunktuner
 - [Python API](python_api.md) — library patterns
 - [API reference](api/index.md) — auto-generated module docs
 - [MCP setup](mcp_setup.md) — Claude Desktop and `CHUNK_TUNER_BASE_DIR`
+- [Contributing](contributing.md) — how to contribute (links to repo checklist)

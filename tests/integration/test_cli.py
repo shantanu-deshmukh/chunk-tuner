@@ -24,6 +24,12 @@ def empty_dir(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def test_root_no_subcommand_shows_help_exit_2() -> None:
+    result = runner.invoke(app, [])
+    assert result.exit_code == 2
+    assert "Usage:" in result.output
+
+
 def test_analyze_exits_zero(corpus: Path) -> None:
     result = runner.invoke(app, ["analyze", str(corpus)])
     assert result.exit_code == 0

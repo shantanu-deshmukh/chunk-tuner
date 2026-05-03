@@ -6,6 +6,9 @@ repo_url: https://github.com/shantanu-deshmukh/chunktuner
 repo_name: shantanu-deshmukh/chunktuner
 edit_uri: edit/main/docs/
 
+extra:
+  documentation: https://shantanu-deshmukh.github.io/chunktuner/
+
 extra_css:
   - stylesheets/extra.css
 

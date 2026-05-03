@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import typer
 
 from chunktuner.cli import (
@@ -17,9 +19,25 @@ from chunktuner.cli import (
 
 app = typer.Typer(
     name="chunk-tune",
-    no_args_is_help=True,
     help="Auto chunking tuner for RAG pipelines",
 )
+
+@app.callback(invoke_without_command=True)
+def _root_callback(ctx: typer.Context) -> None:
+    """Show root help when no subcommand is given; optional interactive tip on stderr."""
+    if ctx.invoked_subcommand is not None:
+        return
+    if sys.stderr.isatty():
+        typer.secho(
+            "Tip: run chunk-tune estimate ./my_docs for a free token/cost estimate, "
+            "or chunk-tune --help for all commands. "
+            "Docs: https://shantanu-deshmukh.github.io/chunktuner/",
+            dim=True,
+            err=True,
+        )
+    typer.echo(ctx.get_help())
+    raise typer.Exit(code=2)
+
 
 init_cmd.register(app)
 analyze_cmd.register(app)

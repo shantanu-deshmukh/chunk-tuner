@@ -3,10 +3,18 @@
 * Guides
     * [Strategy guide](strategy_guide.md)
     * [Metrics reference](metrics.md)
+    * [Metrics glossary](metrics_glossary.md)
     * [Configuration](configuration.md)
     * [MCP setup](mcp_setup.md)
+    * Integrations
+        * [LangChain](integrations/langchain.md)
+        * [LlamaIndex](integrations/llamaindex.md)
+        * [Haystack](integrations/haystack.md)
+* [FAQ](faq.md)
+* [Troubleshooting](troubleshooting.md)
 * [CLI reference](cli_reference.md)
 * [Python API](python_api.md)
+* [Contributing](contributing.md)
 * API reference
     * [Overview](api/index.md)
     * [models](api/models.md)

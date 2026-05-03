@@ -92,5 +92,14 @@ Use `ingest_path` when you have a single file, or `ingest_dir` for a tree. See [
 
 - [Configuration](configuration.md) — `.autochunk.yaml` and environment variables
 - [Strategy guide](strategy_guide.md)
-- [Metrics](metrics.md)
+- [Metrics reference](metrics.md) and [metrics glossary](metrics_glossary.md)
 - [MCP setup](mcp_setup.md)
+
+## See also
+
+- [LangChain integration](integrations/langchain.md)
+- [LlamaIndex integration](integrations/llamaindex.md)
+- [Haystack integration](integrations/haystack.md)
+- [LiteLLM embedding providers](https://docs.litellm.ai/docs/providers)
+- [RAGAS documentation](https://docs.ragas.io/)
+- [Docling documentation](https://ds4sd.github.io/docling/)

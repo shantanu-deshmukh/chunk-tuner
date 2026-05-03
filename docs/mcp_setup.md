@@ -27,8 +27,19 @@ pip install 'chunktuner[mcp]'
 ```
 
 - **`CHUNK_TUNER_BASE_DIR`**: every `path` argument to tools must resolve under this directory (security boundary).
-- **`CHUNKTUNER_CACHE_DIR`**: optional override for the SQLite cache directory (default: `~/.cache/chunktuner`).
+- **`CHUNKTUNER_CACHE_DIR`**: optional override for the SQLite cache directory when **you** use the cache layer (default: `~/.cache/chunktuner`; see `chunktuner.config.default_cache_dir`).
 - **Entry point**: `chunk-tune-mcp` → `chunktuner.mcp.server:run` (stdio JSON-RPC on stdout; **never** `print()` in MCP code).
+
+## Cursor
+
+Cursor’s MCP configuration uses the same **`command` / `args` / `env`** shape as above: register a server named (for example) `chunktuner` with `uvx`, args `["--from", "chunktuner[mcp]", "chunk-tune-mcp"]`, and set `CHUNK_TUNER_BASE_DIR` to an **absolute** corpus root. Where to paste this JSON depends on your Cursor version (global MCP settings vs project config); see the [Cursor MCP documentation](https://docs.cursor.com/context/model-context-protocol) for the current UI.
+
+## Data handling
+
+- **Embeddings:** When MCP tools are called with an `embedding_model`, `LiteLLMEmbeddingFunction` invokes your configured provider via LiteLLM (same as the CLI). With no model, tools use `DummyEmbeddingFunction` — no external embedding calls (`src/chunktuner/mcp/service.py`).
+- **Document content:** Ingestion reads files under the validated `path` inside `CHUNK_TUNER_BASE_DIR`. The MCP server does not send document text to a chunktuner-operated cloud; stdout is reserved for the MCP JSON-RPC stream (`src/chunktuner/mcp/server.py`).
+- **Logging:** Tool timing is logged at INFO to **stderr** in `chunktuner.mcp.tools` (no document body in those messages).
+- **SQLite cache:** Default CLI/MCP evaluation paths do **not** wrap embeddings in `CachedEmbeddingFunction`; optional SQLite caching is available in the library for your own integrations (`chunktuner.cache`, `chunk-tune cache` for inspection/clear). See also [FAQ — caching](faq.md).
 
 ## Local dev (editable)
 
@@ -60,3 +71,12 @@ Use this when you want REST clients; MCP hosts talk to `chunk-tune-mcp` only.
 
 - Resources: `doc://overview`, `doc://strategy_guidelines`, `doc://metrics_guide`
 - Prompts: `explain_chunking_results`, `design_eval_questions`
+
+## See also
+
+- [LangChain integration](integrations/langchain.md)
+- [LlamaIndex integration](integrations/llamaindex.md)
+- [Haystack integration](integrations/haystack.md)
+- [LiteLLM embedding providers](https://docs.litellm.ai/docs/providers)
+- [RAGAS documentation](https://docs.ragas.io/)
+- [Docling documentation](https://ds4sd.github.io/docling/)
