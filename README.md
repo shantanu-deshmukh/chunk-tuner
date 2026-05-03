@@ -10,6 +10,8 @@ Auto chunking tuner and MCP server for RAG pipelines.
 
 Give it your documents. It tries multiple chunking strategies, measures which one lets an AI answer questions most accurately, and tells you the winner.
 
+![chunktuner project flow: documents through strategies, evaluation, to a recommended configuration](docs/assets/project-flow.svg)
+
 ---
 
 ## What it does
@@ -17,10 +19,6 @@ Give it your documents. It tries multiple chunking strategies, measures which on
 When building a RAG pipeline, how you split documents into chunks directly impacts retrieval quality. `chunktuner` automates the process of finding the optimal chunking strategy for your specific corpus, embedding model, and use case.
 
 It benchmarks strategies like fixed-token windows, recursive character splitting, semantic splitting, PDF structural chunking, and AST-based code chunking — then scores each one against real retrieval metrics (token recall, MRR, NDCG) and optional generation metrics (RAGAS faithfulness, answer relevancy).
-
-```
-your docs → try 5+ strategies → measure each → recommend the best config
-```
 
 ---
 

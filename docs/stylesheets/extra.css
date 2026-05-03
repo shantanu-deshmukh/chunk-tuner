@@ -128,3 +128,11 @@ main[role="main"] h6 {
   margin-top: 0.85rem;
   margin-bottom: 0.3rem;
 }
+
+/* Large SVG diagrams: intrinsic size can overflow narrow columns */
+main[role="main"] img[src$="project-flow.svg"] {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+}

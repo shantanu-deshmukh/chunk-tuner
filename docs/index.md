@@ -18,6 +18,8 @@ Chunking choices directly affect RAG quality. **chunktuner** benchmarks strategi
 your docs → try multiple strategies → measure each → recommend the best config
 ```
 
+![chunktuner project flow: documents through strategies, evaluation, to a recommended configuration](assets/project-flow.svg)
+
 ---
 
 ## Three ways to use it
