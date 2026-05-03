@@ -29,7 +29,7 @@ class StructuralSemanticStrategy:
         max_tokens = max(32, int(config.params.get("max_tokens", 512)))
         overlap = int(config.params.get("overlap_tokens", 0))
         coarse = dict(config.params)
-        coarse.setdefault("max_region_chars", int(config.params.get("max_region_chars", 8000)))
+        coarse.setdefault("max_region_chars", 8000)
         regions = self._struct.chunk(doc, ChunkConfig(name="pdf_structural", params=coarse))
         out: list[Chunk] = []
         idx = 0

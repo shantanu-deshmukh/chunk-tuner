@@ -17,6 +17,14 @@ console = Console()
 _VALID_FORMATS = frozenset({"json", "yaml", "table"})
 
 
+def validate_output_format(fmt: str) -> None:
+    if fmt not in _VALID_FORMATS:
+        raise typer.BadParameter(
+            f"Unknown output format {fmt!r}. Valid choices: {sorted(_VALID_FORMATS)}",
+            param_hint="'--output-format'",
+        )
+
+
 def load_workspace_path(config: Path | None) -> Path | None:
     if config is not None:
         return config
@@ -25,11 +33,7 @@ def load_workspace_path(config: Path | None) -> Path | None:
 
 
 def emit_output(data: Any, fmt: str) -> None:
-    if fmt not in _VALID_FORMATS:
-        raise typer.BadParameter(
-            f"Unknown output format {fmt!r}. Valid choices: {sorted(_VALID_FORMATS)}",
-            param_hint="'--output-format'",
-        )
+    validate_output_format(fmt)
     if isinstance(data, BaseModel):
         payload = data.model_dump(mode="json")
     elif isinstance(data, list) and data and isinstance(data[0], BaseModel):

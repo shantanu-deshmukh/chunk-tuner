@@ -112,3 +112,25 @@ def test_generation_metrics_skip_on_empty_llm_response(monkeypatch) -> None:
     mock_bridge.compute.assert_not_called()
     assert result.metrics.faithfulness is None
     assert result.metrics.answer_relevancy is None
+
+
+def test_mrr_zero_when_no_relevant_chunks() -> None:
+    content = "Alpha beta gamma. " * 20
+    doc = Document(id="d1", content=content, content_type="text")
+    query = EvalQuery(id="q1", question="?", document_id="d1", answer_spans=[(0, 0)])
+    ds = EvalDataset(name="t", queries=[query])
+    evaluator = Evaluator(DummyEmbeddingFunction(), top_k=5)
+    result = evaluator.evaluate(
+        FixedTokenStrategy(),
+        ChunkConfig(name="fixed_tokens", params={}),
+        [doc],
+        ds,
+    )
+    assert result.metrics.mrr == 0.0
+
+
+def test_avg_chunk_length_nonzero() -> None:
+    doc, strategy, config, dataset = _simple_setup()
+    evaluator = Evaluator(DummyEmbeddingFunction(), top_k=3)
+    result = evaluator.evaluate(strategy, config, [doc], dataset)
+    assert result.metrics.avg_chunk_length > 0

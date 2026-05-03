@@ -24,7 +24,11 @@ def register(app: typer.Typer) -> None:
         """Create ``.autochunk.yaml`` in the current directory."""
         path = Path.cwd() / ".autochunk.yaml"
         if path.exists():
-            typer.echo(f"Refusing to overwrite existing {path}", err=True)
+            typer.echo(
+                f"Refusing to overwrite existing {path}. "
+                "Delete the file manually and re-run, or edit it directly.",
+                err=True,
+            )
             raise typer.Exit(code=1)
         data = default_init_yaml()
         data["provider"] = provider

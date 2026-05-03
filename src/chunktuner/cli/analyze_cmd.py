@@ -8,7 +8,11 @@ from pathlib import Path
 import tiktoken
 import typer
 
+from chunktuner.cli.common import validate_output_format
 from chunktuner.ingestion.content_type import detect_content_type
+
+_ANALYZE_DIR_MAX_CHARS = 50_000
+_ANALYZE_FILE_MAX_CHARS = 200_000
 
 
 def register(app: typer.Typer) -> None:
@@ -27,6 +31,7 @@ def register(app: typer.Typer) -> None:
         ),
     ) -> None:
         """Quick structural scan (no embeddings)."""
+        validate_output_format(output_format)
         if path.is_dir():
             typer.echo("Directory analyze: summarizing first matching .md/.txt file", err=True)
             sample = next(
@@ -36,10 +41,10 @@ def register(app: typer.Typer) -> None:
             if sample is None:
                 typer.echo("No .md or .txt files found", err=True)
                 raise typer.Exit(1)
-            text = sample.read_text(encoding="utf-8", errors="replace")[:50_000]
+            text = sample.read_text(encoding="utf-8", errors="replace")[:_ANALYZE_DIR_MAX_CHARS]
             target = sample
         else:
-            text = path.read_text(encoding="utf-8", errors="replace")[:200_000]
+            text = path.read_text(encoding="utf-8", errors="replace")[:_ANALYZE_FILE_MAX_CHARS]
             target = path
 
         ct = content_type or detect_content_type(target, text)

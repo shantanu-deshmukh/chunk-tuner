@@ -69,7 +69,16 @@ def register(app: typer.Typer) -> None:
             tid = progress.add_task("Comparing...", total=len(names))
             for n in names:
                 progress.update(tid, description=f"Comparing {n}...")
-                strat = default_registry.get(n)
+                try:
+                    strat = default_registry.get(n)
+                except KeyError:
+                    available = sorted(default_registry.names())
+                    typer.secho(
+                        f"Unknown strategy {n!r}. Available: {available}",
+                        fg=typer.colors.RED,
+                        err=True,
+                    )
+                    raise typer.Exit(2) from None
                 cfg = ChunkConfig(name=n, params=strat.default_param_grid()[0])
                 res = ev.evaluate(strat, cfg, docs, ds, scorer=scorer)
                 rows.append(

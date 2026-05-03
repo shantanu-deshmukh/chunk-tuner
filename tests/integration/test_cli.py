@@ -81,3 +81,30 @@ def test_recommend_rejects_unknown_output_format(corpus: Path) -> None:
     )
     assert result.exit_code != 0
     assert "Unknown output format" in result.output or "bogus" in result.output
+
+
+def test_compare_exits_zero(corpus: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["compare", str(corpus), "--strategies", "fixed_tokens,recursive_character"],
+    )
+    assert result.exit_code == 0
+
+
+def test_compare_invalid_strategy(corpus: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["compare", str(corpus), "--strategies", "nonexistent_strategy"],
+    )
+    assert result.exit_code != 0
+
+
+def test_estimate_yaml_output(corpus: Path) -> None:
+    result = runner.invoke(app, ["estimate", str(corpus), "--output-format", "yaml"])
+    assert result.exit_code == 0
+    assert "total_tokens" in result.output
+
+
+def test_estimate_rejects_unknown_output_format(corpus: Path) -> None:
+    result = runner.invoke(app, ["estimate", str(corpus), "--output-format", "xml"])
+    assert result.exit_code != 0

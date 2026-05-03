@@ -21,17 +21,17 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "typer>=0.12",
-    "pydantic>=2.0",
-    "litellm>=1.40",
-    "rich>=13.0",
-    "fastapi>=0.111",
-    "uvicorn>=0.29",
-    "numpy>=1.26",
-    "tenacity>=8.0",
-    "tiktoken>=0.7",
-    "pyyaml>=6.0.3",
-    "httpx>=0.28.1",
+    "typer>=0.12,<1",
+    "pydantic>=2.0,<3",
+    "litellm>=1.40,<2",
+    "rich>=13.0,<14",
+    "fastapi>=0.111,<1",
+    "uvicorn>=0.29,<1",
+    "numpy>=1.26,<3",
+    "tenacity>=8.0,<9",
+    "tiktoken>=0.7,<1",
+    "pyyaml>=6.0.3,<7",
+    "httpx>=0.28.1,<1",
 ]
 
 [project.optional-dependencies]

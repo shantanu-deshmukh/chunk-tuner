@@ -12,6 +12,13 @@ class ScoreCalculator:
     def __init__(self, use_case: str, custom_weights: dict[str, float] | None = None):
         self.use_case = use_case
         self.weights = dict(custom_weights) if custom_weights else score_profile_weights(use_case)
+        if custom_weights is not None:
+            pos = sum(w for w in self.weights.values() if w > 0)
+            if pos <= 0:
+                raise ValueError(
+                    "custom_weights must contain at least one positive weight; "
+                    f"got {self.weights}"
+                )
 
     def score(self, metrics: EvalMetrics) -> float:
         """Return a scalar score from weighted metric contributions (missing keys skipped)."""

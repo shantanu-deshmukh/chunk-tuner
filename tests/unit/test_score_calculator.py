@@ -41,3 +41,8 @@ def test_high_duplication_penalised(use_case: str) -> None:
     clean = scorer.score(_metrics(duplication_ratio=0.05))
     noisy = scorer.score(_metrics(duplication_ratio=0.9))
     assert clean > noisy
+
+
+def test_custom_weights_requires_positive_sum() -> None:
+    with pytest.raises(ValueError, match="at least one positive weight"):
+        ScoreCalculator("rag_qa", custom_weights={"token_recall": -1.0, "mrr": 0.0})

@@ -33,7 +33,9 @@ class CodeASTStrategy:
         """Emit function/class chunks for Python AST; non-Python falls back to line windows."""
         validate_content_type(self.name, self.supported_content_types, doc.content_type)
         max_tokens = int(config.params.get("max_tokens", 512))
-        if self._parser is None or (doc.language or "").lower() not in ("", "python", "py"):
+        lang = (doc.language or "").lower()
+        use_ast = self._parser is not None and lang in ("", "python", "py")
+        if not use_ast:
             out = self._fallback().chunk(doc, config)
             validate_chunk_offsets(doc, out)
             return out
