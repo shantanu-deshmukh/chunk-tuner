@@ -68,10 +68,9 @@ class CodeASTStrategy:
                     ),
                 ):
                     chunks.append(
-                        Chunk(
+                        Chunk.from_document(
+                            doc,
                             id=f"{doc.id}_ast_{idx}",
-                            document_id=doc.id,
-                            text=c.text,
                             start_offset=start_c + c.start_offset,
                             end_offset=start_c + c.end_offset,
                             tokens=c.tokens,
@@ -80,10 +79,9 @@ class CodeASTStrategy:
                     idx += 1
                 continue
             chunks.append(
-                Chunk(
+                Chunk.from_document(
+                    doc,
                     id=f"{doc.id}_ast_{idx}",
-                    document_id=doc.id,
-                    text=text,
                     start_offset=start_c,
                     end_offset=end_c,
                     tokens=len(self._enc.encode(text)),

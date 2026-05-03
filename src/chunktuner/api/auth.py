@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse
 
 
 class TokenAuthMiddleware(BaseHTTPMiddleware):
-    """Enforces Bearer token auth when ``CHUNK_TUNER_API_TOKEN`` is set."""
+    """Bearer auth when ``CHUNK_TUNER_API_TOKEN`` is set; ``GET /health`` is always public."""
 
     def __init__(self, app, token: str | None = None):
         super().__init__(app)

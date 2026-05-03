@@ -43,12 +43,10 @@ class FixedTokenStrategy:
             j = min(i + max_tokens, len(ids))
             start_char = char_boundaries[i]
             end_char = char_boundaries[j] if j < len(ids) else len(text)
-            slice_text = text[start_char:end_char]
             chunks.append(
-                Chunk(
+                Chunk.from_document(
+                    doc,
                     id=f"{doc.id}_ft_{idx}",
-                    document_id=doc.id,
-                    text=slice_text,
                     start_offset=start_char,
                     end_offset=end_char,
                     tokens=j - i,

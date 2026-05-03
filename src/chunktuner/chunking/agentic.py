@@ -106,10 +106,9 @@ class AgenticStrategy:
                     logger.warning("AgenticStrategy: rejecting chunk with poor offset match")
                     continue
             chunks.append(
-                Chunk(
+                Chunk.from_document(
+                    doc,
                     id=str(uuid.uuid4()),
-                    document_id=doc.id,
-                    text=piece,
                     start_offset=a,
                     end_offset=b,
                     tokens=len(self._enc.encode(piece)),

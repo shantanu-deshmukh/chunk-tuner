@@ -57,10 +57,9 @@ class PdfStructuralStrategy:
                 if doc.page_number is not None:
                     meta["page_number"] = doc.page_number
                 chunks.append(
-                    Chunk(
+                    Chunk.from_document(
+                        doc,
                         id=f"{doc.id}_pdf_{idx}",
-                        document_id=doc.id,
-                        text=piece,
                         start_offset=pos,
                         end_offset=end,
                         tokens=len(self._enc.encode(piece)),

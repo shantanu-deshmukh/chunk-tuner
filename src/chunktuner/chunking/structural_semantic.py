@@ -55,12 +55,10 @@ class StructuralSemanticStrategy:
             for sc in subchunks:
                 abs_start = r.start_offset + sc.start_offset
                 abs_end = r.start_offset + sc.end_offset
-                piece = doc.content[abs_start:abs_end]
                 out.append(
-                    Chunk(
+                    Chunk.from_document(
+                        doc,
                         id=f"{doc.id}_ss_{idx}",
-                        document_id=doc.id,
-                        text=piece,
                         start_offset=abs_start,
                         end_offset=abs_end,
                         tokens=sc.tokens,

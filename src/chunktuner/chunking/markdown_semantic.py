@@ -75,10 +75,9 @@ class MarkdownSemanticStrategy:
                         "This is a semchunk bug — please report it."
                     )
                 chunks.append(
-                    Chunk(
+                    Chunk.from_document(
+                        doc,
                         id=f"{doc.id}_mdsem_{idx}",
-                        document_id=doc.id,
-                        text=slice_text,
                         start_offset=a,
                         end_offset=b,
                         tokens=self._count(slice_text),

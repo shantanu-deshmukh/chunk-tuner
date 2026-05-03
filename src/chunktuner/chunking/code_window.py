@@ -48,10 +48,9 @@ class CodeWindowStrategy:
             a, b = starts[i], starts[j]
             piece = doc.content[a:b]
             chunks.append(
-                Chunk(
+                Chunk.from_document(
+                    doc,
                     id=f"{doc.id}_cw_{idx}",
-                    document_id=doc.id,
-                    text=piece,
                     start_offset=a,
                     end_offset=b,
                     tokens=len(self._enc.encode(piece)),

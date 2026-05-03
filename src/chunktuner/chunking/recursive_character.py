@@ -57,10 +57,9 @@ class RecursiveCharacterStrategy:
             slice_text = text[a:b]
             toks = len(self._enc.encode(slice_text))
             chunks.append(
-                Chunk(
+                Chunk.from_document(
+                    doc,
                     id=f"{doc.id}_rc_{idx}",
-                    document_id=doc.id,
-                    text=slice_text,
                     start_offset=a,
                     end_offset=b,
                     tokens=toks,
