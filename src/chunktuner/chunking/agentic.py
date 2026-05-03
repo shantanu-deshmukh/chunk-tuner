@@ -84,10 +84,19 @@ class AgenticStrategy:
         for item in raw_items[:max_props]:
             if not isinstance(item, dict):
                 continue
-            a = int(item.get("start_offset", item.get("start", 0)))
-            b = int(item.get("end_offset", item.get("end", 0)))
-            a = max(0, min(a, len(content)))
-            b = max(a, min(b, len(content)))
+            raw_a = int(item.get("start_offset", item.get("start", 0)))
+            raw_b = int(item.get("end_offset", item.get("end", 0)))
+            a = max(0, min(raw_a, len(content)))
+            b = max(a, min(raw_b, len(content)))
+            if a != raw_a or b != raw_b:
+                logger.warning(
+                    "AgenticStrategy: clamped LLM offsets [%d:%d] → [%d:%d] for doc %r",
+                    raw_a,
+                    raw_b,
+                    a,
+                    b,
+                    doc.id,
+                )
             piece = content[a:b]
             if not piece.strip():
                 continue
