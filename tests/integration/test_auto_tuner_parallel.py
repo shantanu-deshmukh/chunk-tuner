@@ -71,9 +71,7 @@ def test_parallel_equals_sequential(fixture_docs) -> None:
         )
 
 
-def test_parallel_warm_cache_matches_sequential_with_sqlite(
-    fixture_docs, tmp_path: Path
-) -> None:
+def test_parallel_warm_cache_matches_sequential_with_sqlite(fixture_docs, tmp_path: Path) -> None:
     """B4-1: optional warm_cache pre-embeds so workers reuse SQLite-backed vectors."""
     registry = build_full_registry()
     db_path = tmp_path / "embed_cache.sqlite"

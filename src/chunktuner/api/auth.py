@@ -24,10 +24,6 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         auth = request.headers.get("Authorization") or ""
         parts = auth.split(None, 1)
-        if (
-            len(parts) < 2
-            or parts[0].lower() != "bearer"
-            or parts[1] != self._token
-        ):
+        if len(parts) < 2 or parts[0].lower() != "bearer" or parts[1] != self._token:
             return JSONResponse({"detail": "Unauthorized"}, status_code=401)
         return await call_next(request)

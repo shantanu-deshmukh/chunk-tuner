@@ -34,9 +34,7 @@ def _validate_strategies(names: list[str]) -> None:
     available = set(reg.names())
     invalid = [n for n in names if n not in available]
     if invalid:
-        raise ValueError(
-            f"Unknown strategy name(s): {invalid}. Available: {sorted(available)}"
-        )
+        raise ValueError(f"Unknown strategy name(s): {invalid}. Available: {sorted(available)}")
 
 
 def list_strategies_impl(content_type: str | None = None) -> list[dict]:

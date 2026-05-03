@@ -16,8 +16,7 @@ class ScoreCalculator:
             pos = sum(w for w in self.weights.values() if w > 0)
             if pos <= 0:
                 raise ValueError(
-                    "custom_weights must contain at least one positive weight; "
-                    f"got {self.weights}"
+                    f"custom_weights must contain at least one positive weight; got {self.weights}"
                 )
 
     def score(self, metrics: EvalMetrics) -> float:

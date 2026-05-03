@@ -30,9 +30,7 @@ def test_agentic_stamps_metadata_when_truncated(
 
     doc = Document(id="d1", content="0123456789abcdefghij", content_type="text")
     strat = AgenticStrategy()
-    chunks = strat.chunk(
-        doc, ChunkConfig(name="agentic", params={"max_propositions": 5})
-    )
+    chunks = strat.chunk(doc, ChunkConfig(name="agentic", params={"max_propositions": 5}))
 
     assert len(chunks) >= 1
     assert all(c.metadata.get("agentic_truncated") is True for c in chunks)
@@ -59,9 +57,7 @@ def test_agentic_no_truncation_metadata_when_short(
 
     doc = Document(id="d2", content="short", content_type="text")
     strat = AgenticStrategy()
-    chunks = strat.chunk(
-        doc, ChunkConfig(name="agentic", params={"max_propositions": 5})
-    )
+    chunks = strat.chunk(doc, ChunkConfig(name="agentic", params={"max_propositions": 5}))
 
     assert len(chunks) >= 1
     assert all(c.metadata.get("agentic_truncated") is None for c in chunks)
@@ -87,9 +83,7 @@ def test_agentic_logs_when_offsets_clamped(
 
     doc = Document(id="d3", content="hello world", content_type="text")
     strat = AgenticStrategy()
-    chunks = strat.chunk(
-        doc, ChunkConfig(name="agentic", params={"max_propositions": 5})
-    )
+    chunks = strat.chunk(doc, ChunkConfig(name="agentic", params={"max_propositions": 5}))
 
     assert len(chunks) >= 1
     assert "clamped LLM offsets" in caplog.text
