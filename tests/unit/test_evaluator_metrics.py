@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, Mock
+
 import tiktoken
 
 from chunktuner.chunking.fixed_tokens import FixedTokenStrategy
@@ -56,3 +58,57 @@ def test_token_bounds_emoji() -> None:
     text = "Hello 🌍!"
     bounds = _token_bounds(enc, text)
     assert bounds[-1] == len(text)
+
+
+def test_generation_metrics_skip_on_llm_failure(monkeypatch) -> None:
+    """Failed LLM call must not contribute empty answer to RAGAS inputs."""
+    import litellm
+
+    mock_bridge = MagicMock()
+    mock_bridge.compute = Mock(return_value={"faithfulness": 1.0, "answer_relevancy": 1.0})
+    monkeypatch.setattr(litellm, "completion", Mock(side_effect=RuntimeError("timeout")))
+
+    doc, strategy, config, dataset = _simple_setup()
+    evaluator = Evaluator(
+        DummyEmbeddingFunction(),
+        top_k=1,
+        enable_generation_metrics=True,
+        ragas_bridge=mock_bridge,
+    )
+    result = evaluator.evaluate(strategy, config, [doc], dataset)
+
+    mock_bridge.compute.assert_not_called()
+    assert result.metrics.faithfulness is None
+    assert result.metrics.answer_relevancy is None
+
+
+def test_generation_metrics_skip_on_empty_llm_response(monkeypatch) -> None:
+    """Blank model output must not be sent to RAGAS."""
+    import litellm
+
+    mock_bridge = MagicMock()
+    mock_bridge.compute = Mock(return_value={"faithfulness": 1.0, "answer_relevancy": 1.0})
+
+    class _Msg:
+        content = ""
+
+    class _Choice:
+        message = _Msg()
+
+    class _Resp:
+        choices = [_Choice()]
+
+    monkeypatch.setattr(litellm, "completion", Mock(return_value=_Resp()))
+
+    doc, strategy, config, dataset = _simple_setup()
+    evaluator = Evaluator(
+        DummyEmbeddingFunction(),
+        top_k=1,
+        enable_generation_metrics=True,
+        ragas_bridge=mock_bridge,
+    )
+    result = evaluator.evaluate(strategy, config, [doc], dataset)
+
+    mock_bridge.compute.assert_not_called()
+    assert result.metrics.faithfulness is None
+    assert result.metrics.answer_relevancy is None

@@ -308,9 +308,16 @@ class Evaluator:
                 answer = (resp.choices[0].message.content or "").strip()
             except Exception as exc:
                 logger.warning(
-                    "Generation metric LLM call failed: %s. Skipping for this query.", exc
+                    "Generation metric LLM call failed: %s. "
+                    "Query %r excluded from generation metrics.",
+                    exc,
+                    q.id,
                 )
-                answer = ""
+                continue
+
+            if not answer:
+                continue
+
             ref = q.reference_answer
             if not ref and q.answer_spans:
                 a0, b0 = q.answer_spans[0]
@@ -319,6 +326,10 @@ class Evaluator:
             ctxs.append(ctx)
             ans.append(answer)
             gts.append(ref or "")
+
+        if not qs:
+            return metrics
+
         scores = bridge.compute(qs, ctxs, ans, gts)
         updates: dict[str, float | None] = {}
         if scores.get("faithfulness") is not None:
