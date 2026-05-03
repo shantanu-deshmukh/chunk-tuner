@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -45,6 +45,33 @@ class Chunk(BaseModel):
                 f"end_offset ({self.end_offset}) must be > start_offset ({self.start_offset})"
             )
         return self
+
+    @classmethod
+    def from_document(
+        cls,
+        doc: Document,
+        *,
+        id: str,
+        start_offset: int,
+        end_offset: int,
+        **kwargs: Any,
+    ) -> Chunk:
+        """Build a chunk from ``doc`` slices; ``text`` is always ``doc.content[start:end]``."""
+        n = len(doc.content)
+        if not (0 <= start_offset < end_offset <= n):
+            raise ValueError(
+                f"Offsets [{start_offset}:{end_offset}] out of bounds for doc {doc.id!r} "
+                f"(length {n})"
+            )
+        text = doc.content[start_offset:end_offset]
+        return cls(
+            id=id,
+            document_id=doc.id,
+            text=text,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            **kwargs,
+        )
 
 
 class ChunkConfig(BaseModel):

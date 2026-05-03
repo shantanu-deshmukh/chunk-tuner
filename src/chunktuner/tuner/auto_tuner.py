@@ -25,6 +25,26 @@ def _embed_task_fields(embedding_fn: object) -> dict:
     cls = embedding_fn.__class__.__name__
     if cls == "LiteLLMEmbeddingFunction":
         return {"embed_type": "litellm", "embed_model": getattr(embedding_fn, "model", "")}
+    if cls == "CachedEmbeddingFunction":
+        inner = getattr(embedding_fn, "_inner", None)
+        cache = getattr(embedding_fn, "_cache", None)
+        if inner is None or cache is None or not getattr(cache, "db_path", None):
+            return {
+                "embed_type": "dummy",
+                "profile": getattr(embedding_fn, "profile_name", "dummy/test"),
+            }
+        out: dict[str, str] = {
+            "embed_type": "cached",
+            "cache_db_path": str(cache.db_path),
+            "cache_model": cache.model,
+        }
+        if inner.__class__.__name__ == "LiteLLMEmbeddingFunction":
+            out["inner_embed_type"] = "litellm"
+            out["embed_model"] = getattr(inner, "model", "")
+        else:
+            out["inner_embed_type"] = "dummy"
+            out["profile"] = getattr(inner, "profile_name", "dummy/test")
+        return out
     return {"embed_type": "dummy", "profile": getattr(embedding_fn, "profile_name", "dummy/test")}
 
 
@@ -57,6 +77,7 @@ class AutoTuner:
         baseline: bool = True,
         parallel: bool = False,
         max_workers: int = 4,
+        warm_cache: bool = False,
     ) -> Recommendation:
         """Run full tuning and return the best chunking config.
 
@@ -81,6 +102,9 @@ class AutoTuner:
                 baseline config first.
             parallel: Use a process pool for independent evaluations.
             max_workers: Worker count when ``parallel`` is True.
+            warm_cache: When True with ``parallel``, pre-chunk and ``embed_documents`` all chunk
+                texts in the main process so workers using ``CachedEmbeddingFunction`` can hit the
+                same SQLite cache (requires WAL + ``check_same_thread=False`` on the cache DB).
 
         Returns:
             `Recommendation` with best config, ranked results, and optional baseline.
@@ -137,6 +161,17 @@ class AutoTuner:
                 ):
                     continue
                 jobs.append((name, dict(params)))
+
+        if parallel and jobs and warm_cache:
+            all_texts: set[str] = set()
+            for name, params in jobs:
+                strat = self.strategies.get(name)
+                cfg = ChunkConfig(name=name, params=params)
+                for d in sampled:
+                    for c in strat.chunk(d, cfg):
+                        all_texts.add(c.text)
+            if all_texts:
+                self.evaluator.embedding_fn.embed_documents(sorted(all_texts))
 
         if parallel and jobs:
             from chunktuner.tuner.mp_worker import mp_evaluate_task

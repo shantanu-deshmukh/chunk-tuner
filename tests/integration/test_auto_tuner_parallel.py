@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from chunktuner.cache.embedding_cache import EmbeddingCache
+from chunktuner.cache.wrapped_embeddings import CachedEmbeddingFunction
 from chunktuner.chunking.bootstrap import build_full_registry
 from chunktuner.eval.embeddings import DummyEmbeddingFunction
 from chunktuner.eval.evaluator import Evaluator
@@ -67,3 +69,46 @@ def test_parallel_equals_sequential(fixture_docs) -> None:
         assert abs(r_seq.score - r_par.score) < 1e-6, (
             f"Score mismatch for {r_seq.strategy_name}: seq={r_seq.score}, par={r_par.score}"
         )
+
+
+def test_parallel_warm_cache_matches_sequential_with_sqlite(
+    fixture_docs, tmp_path: Path
+) -> None:
+    """B4-1: optional warm_cache pre-embeds so workers reuse SQLite-backed vectors."""
+    registry = build_full_registry()
+    db_path = tmp_path / "embed_cache.sqlite"
+    small_grid = {"fixed_tokens": [{"max_tokens": 64, "overlap_tokens": 0}]}
+    rec_kw = {
+        "use_case": "rag_qa",
+        "strategies": ["fixed_tokens"],
+        "param_grid": small_grid,
+        "max_docs": 3,
+        "baseline": False,
+    }
+
+    with EmbeddingCache(db_path, "dummy/test") as cache:
+        embed_fn = CachedEmbeddingFunction(DummyEmbeddingFunction(), cache)
+        tuner_seq = AutoTuner(
+            strategies=registry,
+            evaluator=Evaluator(embed_fn, top_k=3),
+            scorer=ScoreCalculator(use_case="rag_qa"),
+        )
+        result_seq = tuner_seq.recommend(fixture_docs, **rec_kw, parallel=False)
+
+    with EmbeddingCache(db_path, "dummy/test") as cache:
+        embed_fn = CachedEmbeddingFunction(DummyEmbeddingFunction(), cache)
+        tuner_par = AutoTuner(
+            strategies=registry,
+            evaluator=Evaluator(embed_fn, top_k=3),
+            scorer=ScoreCalculator(use_case="rag_qa"),
+        )
+        result_par = tuner_par.recommend(
+            fixture_docs,
+            **rec_kw,
+            parallel=True,
+            max_workers=2,
+            warm_cache=True,
+        )
+
+    assert result_seq.best.strategy_name == result_par.best.strategy_name
+    assert abs(result_seq.best.score - result_par.best.score) < 1e-6

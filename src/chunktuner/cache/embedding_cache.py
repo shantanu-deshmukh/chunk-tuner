@@ -12,9 +12,10 @@ class EmbeddingCache:
     """Persistent cache: ``SHA256(model + '|' + text)`` → float vector."""
 
     def __init__(self, db_path: Path, model: str):
+        self.db_path = Path(db_path).resolve()
         self.model = model
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute(
             """
