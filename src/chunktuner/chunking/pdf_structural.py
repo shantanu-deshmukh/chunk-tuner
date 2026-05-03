@@ -7,7 +7,7 @@ from typing import Any
 
 import tiktoken
 
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 _PAGE = re.compile(r"(?m)^##\s*Page\s+(\d+)\s*$")
@@ -41,6 +41,7 @@ class PdfStructuralStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Emit one chunk per sub-region up to ``max_region_chars`` within each structural span."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         text = doc.content
         if not text:
             return []

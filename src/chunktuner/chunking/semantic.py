@@ -6,7 +6,7 @@ from typing import Any
 
 import tiktoken
 
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -36,6 +36,7 @@ class SemanticStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Chunk ``doc.content`` with semchunk using ``max_tokens`` / overlap settings."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         semchunk = _require_semchunk()
         max_tokens = max(16, int(config.params.get("max_tokens", 512)))
         ot = config.params.get("overlap_tokens")

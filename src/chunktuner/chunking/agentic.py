@@ -9,7 +9,7 @@ from typing import Any
 
 import tiktoken
 
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,7 @@ class AgenticStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Call LiteLLM JSON mode to obtain ``start_offset`` / ``end_offset`` chunk list."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         import litellm
 
         model = str(config.params.get("model", "gpt-4o-mini"))

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from chunktuner.chunking.fixed_tokens import FixedTokenStrategy
+from chunktuner.chunking.validation import validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -23,6 +24,7 @@ class LateChunkingStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Chunk with inner `FixedTokenStrategy` using ``chunk_size_tokens`` / overlap."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         max_tokens = int(
             config.params.get("chunk_size_tokens", config.params.get("max_tokens", 256))
         )

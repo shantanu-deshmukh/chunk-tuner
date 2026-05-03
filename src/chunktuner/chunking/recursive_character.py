@@ -6,7 +6,7 @@ from typing import Any
 
 import tiktoken
 
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 _DEFAULT_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
@@ -24,6 +24,7 @@ class RecursiveCharacterStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Produce overlapping spans by splitting on ``separators`` up to ``chunk_size_chars``."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         chunk_size = int(config.params.get("chunk_size_chars", 1600))
         overlap = int(config.params.get("chunk_overlap_chars", 0))
         separators: list[str] = list(config.params.get("separators", _DEFAULT_SEPARATORS))

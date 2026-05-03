@@ -7,7 +7,7 @@ from typing import Any
 import tiktoken
 
 from chunktuner.chunking.pdf_structural import PdfStructuralStrategy
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -25,6 +25,7 @@ class StructuralSemanticStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Map structural regions to absolute-offset sub-chunks using `FixedTokenStrategy`."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         max_tokens = max(32, int(config.params.get("max_tokens", 512)))
         overlap = int(config.params.get("overlap_tokens", 0))
         coarse = dict(config.params)

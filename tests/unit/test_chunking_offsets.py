@@ -37,6 +37,21 @@ def _strategy(name: str):
     return REGISTRY.get(name)
 
 
+@pytest.mark.parametrize(
+    "strategy_name,wrong_type",
+    [
+        ("fixed_tokens", "pdf"),
+        ("code_ast", "text"),
+        ("pdf_structural", "code"),
+    ],
+)
+def test_content_type_guard(strategy_name: str, wrong_type: str) -> None:
+    strategy = _strategy(strategy_name)
+    doc = Document(id="t", content="x", content_type=wrong_type)
+    with pytest.raises(ValueError, match="does not support content_type"):
+        strategy.chunk(doc, ChunkConfig(name=strategy_name, params={}))
+
+
 @pytest.mark.parametrize("strategy_name", ["fixed_tokens", "recursive_character"])
 @pytest.mark.parametrize("label,text", TEXT_CASES)
 def test_offset_invariant_core_strategies(strategy_name: str, label: str, text: str) -> None:

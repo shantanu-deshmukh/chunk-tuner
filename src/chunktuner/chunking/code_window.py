@@ -6,7 +6,7 @@ from typing import Any
 
 import tiktoken
 
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -22,6 +22,7 @@ class CodeWindowStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Walk lines accumulating tokens until ``max_tokens``, with ``overlap_lines`` rewind."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         max_tokens = max(16, int(config.params.get("max_tokens", 512)))
         overlap_lines = max(0, int(config.params.get("overlap_lines", 2)))
         lines = doc.content.splitlines(keepends=True)

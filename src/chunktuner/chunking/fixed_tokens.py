@@ -6,7 +6,7 @@ from typing import Any
 
 import tiktoken
 
-from chunktuner.chunking.validation import validate_chunk_offsets
+from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 
@@ -23,6 +23,7 @@ class FixedTokenStrategy:
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Split ``doc.content`` into fixed-size token spans with correct char offsets."""
+        validate_content_type(self.name, self.supported_content_types, doc.content_type)
         max_tokens = int(config.params.get("max_tokens", 512))
         overlap = int(config.params.get("overlap_tokens", 0))
         max_tokens = max(1, max_tokens)
