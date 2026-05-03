@@ -10,7 +10,7 @@ Auto chunking tuner and MCP server for RAG pipelines.
 
 Give it your documents. It tries multiple chunking strategies, measures which one lets an AI answer questions most accurately, and tells you the winner.
 
-![chunktuner project flow: documents through strategies, evaluation, to a recommended configuration](docs/assets/project-flow.svg)
+![chunktuner project flow: documents through strategies, evaluation, to a recommended configuration](https://raw.githubusercontent.com/shantanu-deshmukh/chunktuner/main/docs/assets/project-flow.svg)
 
 ---
 
