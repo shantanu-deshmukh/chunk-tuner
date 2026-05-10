@@ -1,0 +1,11 @@
+[project]
+name = "financial-analysis-example"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "chunktuner>=0.1.1",
+    "datasets>=2.16.0,<4",
+]
+
+[tool.uv.sources]
+chunktuner = { path = "../..", editable = true }

@@ -47,6 +47,10 @@ class RecursiveCharacterStrategy:
             end = self._find_break(text, start, min(start + chunk_size, n), separators)
             if end <= start:
                 end = min(start + chunk_size, n)
+            # Separator within the overlap zone: hard cut so the window
+            # always advances by at least overlap+1 chars.
+            if end - start <= overlap:
+                end = min(start + chunk_size, n)
             raw_ranges.append((start, end))
             if end >= n:
                 break

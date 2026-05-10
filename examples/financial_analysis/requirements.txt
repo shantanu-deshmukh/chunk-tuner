@@ -1,0 +1,13 @@
+# Install chunktuner from the repo root before these extras:
+#   uv sync --all-groups
+# Or from PyPI: uv pip install "chunktuner>=0.1.1"
+
+# Required for Hugging Face data loading (--num-transcripts without --fixture):
+datasets>=2.16.0,<4
+
+# Required for live embeddings (--embedding-model):
+# litellm>=1.40,<2
+
+# NOTE: smallevals, chromadb, sentence-transformers are NOT used by this example.
+# They appear in the design document but are not part of chunktuner's architecture.
+# chunktuner computes retrieval metrics in-process via numpy — no VDB needed.

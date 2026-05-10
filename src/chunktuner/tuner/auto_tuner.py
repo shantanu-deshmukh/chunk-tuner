@@ -188,6 +188,7 @@ class AutoTuner:
                         "docs": docs_payload,
                         "dataset": ds_payload,
                         "use_case": use_case,
+                        "user_custom_weights": self.scorer.user_custom_weights,
                         "top_k": self.evaluator.top_k,
                         "enable_generation_metrics": self.evaluator.enable_generation_metrics,
                         "encoding": "cl100k_base",

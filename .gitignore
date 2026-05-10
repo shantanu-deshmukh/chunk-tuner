@@ -71,3 +71,17 @@ docs/_build/
 *.pem
 *.key
 secrets/
+rnd
+
+
+# local
+.claude
+.cursor
+.cursorignore
+.cursorrules
+Claude.md
+FinalTechnicalSpec.md
+Progress.md
+AuthorReadme.md
+DocumentationPlan.md
+PLAN_PRODUCTION_READY.md

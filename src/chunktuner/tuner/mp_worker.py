@@ -43,5 +43,7 @@ def mp_evaluate_task(task: dict) -> dict:
         top_k=int(task.get("top_k", 5)),
         enable_generation_metrics=bool(task.get("enable_generation_metrics", False)),
     )
-    res = ev.evaluate(strat, cfg, docs, ds, scorer=ScoreCalculator(task["use_case"]))
+    ucw = task.get("user_custom_weights")
+    scorer = ScoreCalculator(task["use_case"], custom_weights=ucw)
+    res = ev.evaluate(strat, cfg, docs, ds, scorer=scorer)
     return res.model_dump()

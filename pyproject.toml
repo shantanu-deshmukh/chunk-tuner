@@ -68,7 +68,7 @@ build-backend = "hatchling.build"
 packages = ["src/chunktuner"]
 
 [tool.ruff]
-src = ["src", "tests"]
+src = ["src", "tests", "examples"]
 line-length = 100
 target-version = "py310"
 

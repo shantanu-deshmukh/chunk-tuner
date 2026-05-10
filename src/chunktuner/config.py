@@ -53,31 +53,35 @@ def default_cache_dir() -> Path:
 
 
 def score_profile_weights(use_case: str) -> dict[str, float]:
-    """Default metric weights (subset used per phase)."""
+    """Default metric weights for each use-case profile.
+
+    All keys must correspond to EvalMetrics fields that are already on a
+    0–1 scale (token_recall, mrr, token_iou, recall_at_k, faithfulness,
+    answer_relevancy, duplication_ratio).  Raw token-count fields such as
+    avg_tokens_per_query, avg_chunk_length, and chunk_length_std are
+    available on EvalMetrics for inspection but are not included here.
+    """
     profiles: dict[str, dict[str, float]] = {
         "rag_qa": {
-            "token_recall": 0.35,
-            "token_iou": 0.20,
-            "mrr": 0.20,
-            "faithfulness": 0.15,
-            "avg_tokens_per_query": -0.05,
-            "duplication_ratio": -0.05,
+            "token_recall": 0.45,
+            "mrr": 0.30,
+            "token_iou": 0.15,
+            "faithfulness": 0.10,
+            "duplication_ratio": -0.10,
         },
         "search": {
-            "recall_at_1": 0.40,
-            "mrr": 0.30,
-            "avg_tokens_per_query": -0.15,
+            "recall_at_1": 0.50,
+            "mrr": 0.35,
             "duplication_ratio": -0.15,
         },
         "summarization": {
-            "token_recall": 0.40,
-            "avg_chunk_length": 0.30,
-            "duplication_ratio": -0.30,
+            "token_recall": 0.60,
+            "token_iou": 0.20,
+            "duplication_ratio": -0.20,
         },
         "code_assist": {
-            "token_recall": 0.35,
-            "mrr": 0.30,
-            "chunk_length_std": -0.20,
+            "token_recall": 0.50,
+            "mrr": 0.35,
             "duplication_ratio": -0.15,
         },
     }
