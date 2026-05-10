@@ -8,7 +8,7 @@ import typer
 
 from chunktuner.chunking import default_registry
 from chunktuner.cli.common import load_workspace_path, validate_output_format
-from chunktuner.config import load_workspace_config
+from chunktuner.config import DEFAULT_EMBEDDING_MODEL, load_workspace_config
 from chunktuner.eval.cost_estimator import CostEstimator
 from chunktuner.ingestion.file_ingestor import FileIngestor
 
@@ -42,7 +42,7 @@ def register(app: typer.Typer) -> None:
             docs,
             names,
             param_grid,
-            ws.embedding_model,
+            ws.embedding_model or DEFAULT_EMBEDDING_MODEL,
             generate_dataset=True,
         )
         if output_format == "json":

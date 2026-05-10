@@ -30,18 +30,29 @@ def mp_evaluate_task(task: dict) -> dict:
     if embed_type == "cached":
         cache = EmbeddingCache(Path(task["cache_db_path"]), task["cache_model"])
         if task.get("inner_embed_type") == "litellm":
-            inner = LiteLLMEmbeddingFunction(task["embed_model"])
+            inner = LiteLLMEmbeddingFunction(
+                task["embed_model"],
+                api_base=task.get("embed_api_base"),
+                api_key=task.get("embed_api_key"),
+            )
         else:
             inner = DummyEmbeddingFunction(task.get("profile", "dummy/test"))
         fn = CachedEmbeddingFunction(inner, cache)
     elif embed_type == "litellm":
-        fn = LiteLLMEmbeddingFunction(task["embed_model"])
+        fn = LiteLLMEmbeddingFunction(
+            task["embed_model"],
+            api_base=task.get("embed_api_base"),
+            api_key=task.get("embed_api_key"),
+        )
     else:
         fn = DummyEmbeddingFunction(task.get("profile", "dummy/test"))
     ev = Evaluator(
         fn,
         top_k=int(task.get("top_k", 5)),
         enable_generation_metrics=bool(task.get("enable_generation_metrics", False)),
+        llm_answer_model=task.get("llm_answer_model"),
+        llm_api_base=task.get("llm_api_base"),
+        llm_api_key=task.get("llm_api_key"),
     )
     ucw = task.get("user_custom_weights")
     scorer = ScoreCalculator(task["use_case"], custom_weights=ucw)

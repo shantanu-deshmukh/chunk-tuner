@@ -40,28 +40,49 @@ class DummyEmbeddingFunction:
 class LiteLLMEmbeddingFunction:
     """LiteLLM-backed embeddings (calls provider APIs)."""
 
-    def __init__(self, model: str):
+    def __init__(
+        self,
+        model: str,
+        api_base: str | None = None,
+        api_key: str | None = None,
+    ):
         import litellm
 
         self._litellm = litellm
         self.model = model
+        self.api_base = api_base
+        self.api_key = api_key
         self.profile_name = model
+
+    def _provider_kwargs(self) -> dict[str, str]:
+        kw: dict[str, str] = {}
+        if self.api_base:
+            kw["api_base"] = self.api_base
+        if self.api_key:
+            kw["api_key"] = self.api_key
+        return kw
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
-        resp = self._litellm.embedding(model=self.model, input=texts)
+        resp = self._litellm.embedding(model=self.model, input=texts, **self._provider_kwargs())
         data = sorted(resp["data"], key=lambda d: d["index"])
         return [d["embedding"] for d in data]
 
     def embed_query(self, text: str) -> list[float]:
-        resp = self._litellm.embedding(model=self.model, input=[text])
+        resp = self._litellm.embedding(model=self.model, input=[text], **self._provider_kwargs())
         return list(resp["data"][0]["embedding"])
 
 
-def embedding_from_workspace(model: str | None, *, prefer_dummy: bool = False) -> Any:
+def embedding_from_workspace(
+    model: str | None,
+    *,
+    prefer_dummy: bool = False,
+    api_base: str | None = None,
+    api_key: str | None = None,
+) -> Any:
     if prefer_dummy:
         return DummyEmbeddingFunction()
     if model:
-        return LiteLLMEmbeddingFunction(model=model)
+        return LiteLLMEmbeddingFunction(model, api_base=api_base, api_key=api_key)
     return DummyEmbeddingFunction()

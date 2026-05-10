@@ -45,7 +45,6 @@ def test_financial_example_fixture_rag_qa() -> None:
             "--fixture",
             "--num-transcripts",
             "2",
-            "--no-truncate",
             "--use-case",
             "rag_qa",
             "-q",

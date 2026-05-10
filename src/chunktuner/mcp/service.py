@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from chunktuner.api.security import require_under_base
 from chunktuner.chunking.bootstrap import build_full_registry
+from chunktuner.config import DEFAULT_LLM_MODEL, WorkspaceConfig, resolve_provider_config
 from chunktuner.eval.cost_estimator import CostEstimator
 from chunktuner.eval.embeddings import DummyEmbeddingFunction, LiteLLMEmbeddingFunction
 from chunktuner.eval.evaluator import Evaluator
@@ -17,6 +18,10 @@ from chunktuner.models import ChunkConfig, Document, UseCase
 from chunktuner.tuner.auto_tuner import AutoTuner
 
 DEFAULT_MAX_PREVIEW_CHARS = 500_000
+
+_ws_defaults = WorkspaceConfig()
+_MCP_API_BASE, _MCP_API_KEY = resolve_provider_config(_ws_defaults)
+_MCP_LLM_MODEL = os.environ.get("CHUNKTUNER_LLM_MODEL") or DEFAULT_LLM_MODEL
 
 
 def max_preview_chars() -> int:
@@ -105,14 +110,26 @@ def evaluate_chunking_impl(
         )
         return est.model_dump()
     embed = (
-        LiteLLMEmbeddingFunction(embedding_model) if embedding_model else DummyEmbeddingFunction()
+        LiteLLMEmbeddingFunction(
+            embedding_model,
+            api_base=_MCP_API_BASE,
+            api_key=_MCP_API_KEY,
+        )
+        if embedding_model
+        else DummyEmbeddingFunction()
     )
     fi = FileIngestor(root=p.parent if p.is_file() else p)
     docs = fi.ingest_path(p) if p.is_file() else fi.ingest_dir(p)
     docs = docs[:max_docs]
     ds = trivial_dataset_for_docs(docs)
     reg = build_full_registry()
-    ev = Evaluator(embed, top_k=top_k)
+    ev = Evaluator(
+        embed,
+        top_k=top_k,
+        llm_answer_model=_MCP_LLM_MODEL,
+        llm_api_base=_MCP_API_BASE,
+        llm_api_key=_MCP_API_KEY,
+    )
     scorer = ScoreCalculator(cast(UseCase, use_case))
     results = []
     for n in names:
@@ -142,7 +159,13 @@ def recommend_config_impl(
     if strategies is not None:
         _validate_strategies(strategies)
     embed = (
-        LiteLLMEmbeddingFunction(embedding_model) if embedding_model else DummyEmbeddingFunction()
+        LiteLLMEmbeddingFunction(
+            embedding_model,
+            api_base=_MCP_API_BASE,
+            api_key=_MCP_API_KEY,
+        )
+        if embedding_model
+        else DummyEmbeddingFunction()
     )
     fi = FileIngestor(root=p.parent if p.is_file() else p)
     docs = fi.ingest_path(p) if p.is_file() else fi.ingest_dir(p)
@@ -150,7 +173,13 @@ def recommend_config_impl(
     uc = cast(UseCase, use_case)
     tuner = AutoTuner(
         build_full_registry(),
-        Evaluator(embed, top_k=top_k),
+        Evaluator(
+            embed,
+            top_k=top_k,
+            llm_answer_model=_MCP_LLM_MODEL,
+            llm_api_base=_MCP_API_BASE,
+            llm_api_key=_MCP_API_KEY,
+        ),
         ScoreCalculator(uc),
     )
     strat_names = strategies or ["fixed_tokens", "recursive_character"]

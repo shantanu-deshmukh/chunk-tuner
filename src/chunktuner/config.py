@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 # Default tiktoken encoding (GPT-4 / cl100k family)
 DEFAULT_TOKENIZER_ENCODING = "cl100k_base"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+DEFAULT_LLM_MODEL = "gpt-4o-mini"
 DEFAULT_EMBED_BATCH_SIZE = 64
 DEFAULT_TOP_K = 5
 DEFAULT_CONTEXT_BUDGET_TOKENS = 2000
@@ -26,8 +27,10 @@ class WorkspaceConfig(BaseModel):
 
     version: int = 1
     provider: str = "openai"
-    embedding_model: str = DEFAULT_EMBEDDING_MODEL
-    llm_model: str = "gpt-4o-mini"
+    embedding_model: str | None = None
+    llm_model: str = DEFAULT_LLM_MODEL
+    api_base: str | None = None
+    api_key: str | None = None
     use_case: str = "rag_qa"
     max_docs: int = 100
     max_tokens_per_run: int = 250_000
@@ -43,6 +46,17 @@ def load_workspace_config(path: Path | None) -> WorkspaceConfig:
         return WorkspaceConfig()
     raw = yaml.safe_load(path.read_text()) or {}
     return WorkspaceConfig.model_validate(raw)
+
+
+def resolve_provider_config(ws: WorkspaceConfig) -> tuple[str | None, str | None]:
+    """Return ``(api_base, api_key)`` from workspace config with env var fallback.
+
+    Priority: workspace fields ``api_base`` / ``api_key``, then ``CHUNKTUNER_API_BASE`` /
+    ``CHUNKTUNER_API_KEY`` environment variables.
+    """
+    api_base = ws.api_base or os.environ.get("CHUNKTUNER_API_BASE") or None
+    api_key = ws.api_key or os.environ.get("CHUNKTUNER_API_KEY") or None
+    return api_base, api_key
 
 
 def default_cache_dir() -> Path:
@@ -93,7 +107,8 @@ def default_init_yaml() -> dict[str, Any]:
         "version": 1,
         "provider": "openai",
         "embedding_model": DEFAULT_EMBEDDING_MODEL,
-        "llm_model": "gpt-4o-mini",
+        "llm_model": DEFAULT_LLM_MODEL,
+        "api_base": None,
         "use_case": "rag_qa",
         "max_docs": 100,
         "max_tokens_per_run": 250_000,

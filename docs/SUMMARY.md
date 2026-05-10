@@ -5,6 +5,7 @@
     * [Metrics reference](metrics.md)
     * [Metrics glossary](metrics_glossary.md)
     * [Configuration](configuration.md)
+    * [Providers](providers.md)
     * [MCP setup](mcp_setup.md)
     * Integrations
         * [LangChain](integrations/langchain.md)

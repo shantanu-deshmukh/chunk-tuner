@@ -9,7 +9,7 @@ import typer
 from chunktuner.cache.chunk_cache import ChunkCache
 from chunktuner.cache.embedding_cache import EmbeddingCache, default_embedding_db_path
 from chunktuner.cli.common import load_workspace_path
-from chunktuner.config import default_cache_dir, load_workspace_config
+from chunktuner.config import DEFAULT_EMBEDDING_MODEL, default_cache_dir, load_workspace_config
 
 
 def register(app: typer.Typer) -> None:
@@ -25,7 +25,7 @@ def register(app: typer.Typer) -> None:
         ),
     ) -> None:
         ws = load_workspace_config(load_workspace_path(config))
-        effective_model = model or ws.embedding_model
+        effective_model = model or ws.embedding_model or DEFAULT_EMBEDDING_MODEL
         cache_dir = Path(ws.cache_dir).expanduser() if ws.cache_dir else default_cache_dir()
         db = default_embedding_db_path(cache_dir)
         if not db.is_file():
@@ -46,7 +46,7 @@ def register(app: typer.Typer) -> None:
         ),
     ) -> None:
         ws = load_workspace_config(load_workspace_path(config))
-        effective_model = model or ws.embedding_model
+        effective_model = model or ws.embedding_model or DEFAULT_EMBEDDING_MODEL
         cache_dir = Path(ws.cache_dir).expanduser() if ws.cache_dir else default_cache_dir()
         db = default_embedding_db_path(cache_dir)
         if db.is_file():

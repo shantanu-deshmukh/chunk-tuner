@@ -13,8 +13,14 @@ import sys
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from dotenv import load_dotenv
+from rich import box
+from rich.console import Console
+from rich.table import Table
+
 from chunktuner.chunking import build_full_registry
 from chunktuner.chunking.registry import StrategyRegistry
+from chunktuner.config import DEFAULT_LLM_MODEL
 from chunktuner.eval.embeddings import DummyEmbeddingFunction, LiteLLMEmbeddingFunction
 from chunktuner.eval.evaluator import Evaluator
 from chunktuner.eval.score_calculator import ScoreCalculator
@@ -22,6 +28,7 @@ from chunktuner.models import Document, EvalDataset, EvalQuery, Recommendation, 
 from chunktuner.tuner import AutoTuner
 
 logger = logging.getLogger(__name__)
+_console = Console(width=120)
 
 TextMode = Literal["raw", "structured", "structured_prefixed"]
 
@@ -80,7 +87,10 @@ def finance_fixed_tokens_param_grid() -> dict[str, list[dict[str, Any]]]:
     }
 
 
-def financial_param_grid_for(strategy_names: list[str]) -> dict[str, list[dict[str, Any]]]:
+def financial_param_grid_for(
+    strategy_names: list[str],
+    llm_model: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
     """Demo-sized grids per strategy (smaller than full ``default_param_grid()``).
 
     To add a new strategy, append its name to ``--strategies`` and add its grid here.
@@ -93,11 +103,20 @@ def financial_param_grid_for(strategy_names: list[str]) -> dict[str, list[dict[s
         grid.update(finance_recursive_param_grid())
     if "semantic" in strategy_names:
         grid["semantic"] = [
+            {"max_tokens": 512, "similarity_threshold": 0.0},
             {"max_tokens": 512, "similarity_threshold": 0.1},
-            {"max_tokens": 1024, "similarity_threshold": 0.15},
+            {"max_tokens": 1024, "similarity_threshold": 0.1},
         ]
-    # For ``late_chunking`` and ``agentic``: check their ``param_schema()`` and add grids here.
-    # Agentic incurs LLM API cost — run with ``--include-agentic`` only when budgeted.
+    if "late_chunking" in strategy_names:
+        grid["late_chunking"] = [
+            {"chunk_size_tokens": 256, "overlap_tokens": 0},
+            {"chunk_size_tokens": 512, "overlap_tokens": 51},
+            {"chunk_size_tokens": 1024, "overlap_tokens": 154},
+        ]
+    if "agentic" in strategy_names:
+        grid["agentic"] = [
+            {"model": llm_model or DEFAULT_LLM_MODEL, "max_propositions": 30},
+        ]
     return grid
 
 
@@ -120,8 +139,36 @@ def resolve_strategy_names(
         text_names = list(registry.names("text"))
         if not include_agentic:
             text_names = [n for n in text_names if n != "agentic"]
+        try:
+            import semchunk  # noqa: F401
+        except ImportError:
+            text_names = [n for n in text_names if n != "semantic"]
         return text_names
     return ["fixed_tokens", "recursive_character"]
+
+
+def print_strategy_availability(
+    registry: StrategyRegistry,
+    evaluated: list[str],
+    content_type: str,
+) -> None:
+    """Print which strategies will run and which are skipped or unavailable."""
+    all_for_ct = set(registry.names(content_type))
+    skipped = all_for_ct - set(evaluated)
+    _console.print(f"Strategies selected : [bold]{', '.join(sorted(evaluated))}[/bold]")
+    if skipped:
+        _console.print(f"[dim]Skipped (not in run): {', '.join(sorted(skipped))}[/dim]")
+    try:
+        import semchunk  # noqa: F401
+    except ImportError:
+        if "semantic" in skipped:
+            _console.print(
+                "[dim]  semantic needs semchunk: "
+                "uv add 'chunktuner\\[semantic]'[/dim]"
+            )
+    if "agentic" in skipped:
+        _console.print("[dim]  agentic needs --include-agentic (LLM API cost)[/dim]")
+    _console.print()
 
 
 def extract_speaker_segments(record: dict[str, Any]) -> list[str]:
@@ -592,15 +639,16 @@ def build_financial_eval_dataset(docs: list[Document]) -> EvalDataset:
                 continue
             span_start = max(0, idx - 50)
             span_end = min(len(doc.content), idx + len(phrase) + 100)
+            gold_text = doc.content[span_start:span_end].strip()
             queries.append(
                 EvalQuery(
                     id=f"q_{doc.id}_{phrase.replace(' ', '_')}",
                     question=questions[phrase],
                     document_id=doc.id,
                     answer_spans=[(span_start, span_end)],
+                    reference_answer=gold_text or None,
                 )
             )
-            break
 
     if not queries:
         from chunktuner.eval.trivial_dataset import trivial_dataset_for_docs
@@ -608,6 +656,30 @@ def build_financial_eval_dataset(docs: list[Document]) -> EvalDataset:
         return trivial_dataset_for_docs(docs)
 
     return EvalDataset(name="financial_qa", queries=queries, source="user_provided")
+
+
+def build_eval_dataset_for(
+    docs: list[Document],
+    llm_model: str | None,
+    api_base: str | None,
+    api_key: str | None,
+) -> EvalDataset:
+    """Prefer LLM-built eval data when ``llm_model`` is set; fall back to heuristic financial QA."""
+    if llm_model:
+        from chunktuner.eval.dataset_builder import DatasetBuilder
+
+        builder = DatasetBuilder(
+            llm_model=llm_model,
+            llm_api_base=api_base,
+            llm_api_key=api_key,
+        )
+        try:
+            dataset = builder.build_from_docs(docs, max_queries=200, questions_per_doc=4)
+            if len(dataset.queries) >= 10:
+                return dataset
+        except Exception as exc:
+            logger.warning("LLM dataset generation failed (%s); falling back to heuristic.", exc)
+    return build_financial_eval_dataset(docs)
 
 
 def load_hf_transcripts(
@@ -648,6 +720,9 @@ def run_recommendation(
     use_case: UseCase,
     top_k: int,
     embedding_model: str | None,
+    api_base: str | None,
+    api_key: str | None,
+    llm_model: str | None,
     no_baseline: bool,
     registry: StrategyRegistry,
     strategy_names: list[str],
@@ -658,11 +733,24 @@ def run_recommendation(
 ) -> Recommendation:
     embed_fn: DummyEmbeddingFunction | LiteLLMEmbeddingFunction
     if embedding_model:
-        embed_fn = LiteLLMEmbeddingFunction(model=embedding_model)
+        embed_fn = LiteLLMEmbeddingFunction(
+            embedding_model,
+            api_base=api_base,
+            api_key=api_key,
+        )
     else:
         embed_fn = DummyEmbeddingFunction(profile_name="dummy/financial-example")
 
-    ev = Evaluator(embed_fn, top_k=top_k)
+    has_reference_answers = any(q.reference_answer for q in dataset.queries)
+    enable_gen = bool(llm_model and has_reference_answers)
+    ev = Evaluator(
+        embed_fn,
+        top_k=top_k,
+        enable_generation_metrics=enable_gen,
+        llm_answer_model=llm_model,
+        llm_api_base=api_base,
+        llm_api_key=api_key,
+    )
     if financial_weights:
         if use_case != "rag_qa":
             raise SystemExit("--financial-weights is only supported with --use-case rag_qa")
@@ -670,7 +758,7 @@ def run_recommendation(
     else:
         scorer = ScoreCalculator(use_case)
     tuner = AutoTuner(registry, ev, scorer)
-    param_grid = financial_param_grid_for(strategy_names)
+    param_grid = financial_param_grid_for(strategy_names, llm_model=llm_model)
     return tuner.recommend(
         docs,
         use_case,
@@ -719,6 +807,133 @@ def format_summary(rec: Recommendation) -> str:
     return "\n".join(lines)
 
 
+_LATE_CHUNKING_NOTE = (
+    "¹ late_chunking currently uses fixed token windows internally. "
+    "Per-token embedding model required for full late-pooling support."
+)
+_DISQUALIFIED_THRESHOLD = 0.3
+
+
+def _params_label(result: Any) -> str:
+    p = result.config.params
+    name = result.strategy_name
+    if name == "fixed_tokens":
+        return f"{p.get('max_tokens', '?')} tok / {p.get('overlap_tokens', 0)} ov"
+    if name == "recursive_character":
+        default_seps = default_recursive_separators()
+        is_finance = p.get("separators") not in (None, default_seps)
+        suffix = " fin-sep" if is_finance else ""
+        return f"{p.get('chunk_size_chars', '?')} chr / {p.get('chunk_overlap_chars', 0)} ov{suffix}"
+    if name == "late_chunking":
+        return f"{p.get('chunk_size_tokens', '?')} tok / {p.get('overlap_tokens', 0)} ov"
+    if name == "semantic":
+        return f"{p.get('max_tokens', '?')} tok / thr={p.get('similarity_threshold', 0):.2f}"
+    if name == "agentic":
+        return f"{p.get('model', '?')} / {p.get('max_propositions', '?')} props"
+    return str(p)
+
+
+def print_comparison_table(
+    rec: Recommendation,
+    docs: list[Document],
+    *,
+    show_generation_metrics: bool = False,
+) -> None:
+    """Print a rich ranked table of all evaluated configs."""
+    baseline_score = rec.baseline.score if rec.baseline else None
+    has_late = any(r.strategy_name == "late_chunking" for r in rec.ranked)
+    has_disqualified = any(
+        r.metrics.duplication_ratio > _DISQUALIFIED_THRESHOLD for r in rec.ranked
+    )
+
+    _console.print()
+    _console.rule("[bold]Strategy Comparison — Financial Earnings Transcripts[/bold]")
+    _console.print(
+        f"  [dim]{len(docs)} doc{'s' if len(docs) != 1 else ''}  ·  "
+        f"use-case: {rec.use_case}  ·  "
+        f"embedding: {rec.embedding_profile}[/dim]"
+    )
+    _console.print()
+
+    table = Table(box=box.SIMPLE_HEAD, show_footer=False, padding=(0, 1))
+    table.add_column("Rank", justify="right", style="dim", no_wrap=True)
+    table.add_column("Strategy", style="bold", no_wrap=True)
+    table.add_column("Params", no_wrap=True)
+    table.add_column("Score", justify="right")
+    table.add_column("Recall", justify="right", style="dim")
+    table.add_column("MRR", justify="right", style="dim")
+    table.add_column("IOU", justify="right", style="dim")
+    table.add_column("AvgTok", justify="right", style="dim")
+    if show_generation_metrics:
+        table.add_column("Faith", justify="right", style="dim")
+        table.add_column("AnsRel", justify="right", style="dim")
+
+    for rank, result in enumerate(rec.ranked, 1):
+        m = result.metrics
+        is_winner = rank == 1
+        is_disqualified = m.duplication_ratio > _DISQUALIFIED_THRESHOLD
+        is_late = result.strategy_name == "late_chunking"
+        note = " ¹" if is_late else ""
+
+        if is_disqualified:
+            row_style = "red"
+            rank_label = f"{rank} ✗"
+        elif is_winner:
+            row_style = "green"
+            rank_label = f"{rank} ★"
+        elif baseline_score is not None and result.score >= baseline_score:
+            row_style = "green"
+            rank_label = str(rank)
+        else:
+            row_style = ""
+            rank_label = str(rank)
+
+        row_cells: list[str] = [
+            rank_label,
+            result.strategy_name + note,
+            _params_label(result),
+            f"{result.score:.3f}",
+            f"{m.token_recall:.3f}",
+            f"{m.mrr:.3f}",
+            f"{m.token_iou:.3f}",
+            f"{m.avg_chunk_length:.0f}",
+        ]
+        if show_generation_metrics:
+            row_cells.append(
+                f"{m.faithfulness:.3f}" if m.faithfulness is not None else "—"
+            )
+            row_cells.append(
+                f"{m.answer_relevancy:.3f}" if m.answer_relevancy is not None else "—"
+            )
+        table.add_row(*row_cells, style=row_style)
+
+    _console.print(table)
+
+    if rec.baseline:
+        b = rec.baseline
+        delta = rec.best.score - b.score
+        pct = (delta / b.score * 100) if b.score else 0
+        sign = "+" if delta >= 0 else ""
+        _console.print(
+            f"  Baseline  [dim]{b.strategy_name}  {_params_label(b)}[/dim]"
+            f"  →  score [bold]{b.score:.3f}[/bold]"
+        )
+        _console.print(
+            f"  Winner beats baseline by "
+            f"[{'green' if delta >= 0 else 'red'}]{sign}{delta:.3f}  ({sign}{pct:.1f}%)[/]"
+        )
+
+    if has_disqualified:
+        _console.print(
+            "\n  [red]✗[/red]  Configs marked ✗ have duplication_ratio > 0.3 "
+            "and are not recommended for production."
+        )
+    if has_late:
+        _console.print(f"\n  [dim]{_LATE_CHUNKING_NOTE}[/dim]")
+
+    _console.print()
+
+
 def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
     p = argparse.ArgumentParser(description="Financial transcript chunking benchmark (chunktuner).")
     p.add_argument(
@@ -726,7 +941,7 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
         action="store_true",
         help="Use built-in synthetic transcripts (no HF).",
     )
-    p.add_argument("--num-transcripts", type=int, default=8, metavar="N")
+    p.add_argument("--num-transcripts", type=int, default=50, metavar="N")
     p.add_argument(
         "--text-mode",
         choices=("raw", "structured", "structured_prefixed"),
@@ -736,14 +951,9 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
     p.add_argument(
         "--max-chars",
         type=int,
-        default=16_000,
+        default=None,
         metavar="C",
-        help="Truncate each document body to C characters for faster demos (default 16000).",
-    )
-    p.add_argument(
-        "--no-truncate",
-        action="store_true",
-        help="Use full document text (slow on HF).",
+        help="Truncate each document body to C characters (default: no truncation).",
     )
     p.add_argument(
         "--use-case",
@@ -756,7 +966,36 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
         "--embedding-model",
         default=None,
         metavar="MODEL",
-        help="If set, call LiteLLM embeddings (API cost). Default: DummyEmbeddingFunction.",
+        help=(
+            "If set, call LiteLLM embeddings (API cost). Default: DummyEmbeddingFunction. "
+            "For Google Gemini use e.g. text-embedding-004 with GEMINI_API_KEY in a .env file."
+        ),
+    )
+    p.add_argument(
+        "--lm-studio",
+        action="store_true",
+        help="Use LM Studio default base URL http://localhost:1234/v1 (requires --embedding-model and --llm-model).",
+    )
+    p.add_argument(
+        "--lm-studio-url",
+        default=None,
+        metavar="URL",
+        help="Base URL for any OpenAI-compatible server (LM Studio, Ollama, vLLM, Azure).",
+    )
+    p.add_argument(
+        "--llm-model",
+        default=None,
+        metavar="MODEL",
+        help=(
+            "LLM for agentic strategy, optional LLM dataset generation, and generation metrics. "
+            "Examples: gemini/gemini-1.5-flash, claude-3-haiku-20240307, openai/llama-3.2-3b-instruct."
+        ),
+    )
+    p.add_argument(
+        "--api-key",
+        default=None,
+        metavar="KEY",
+        help="API key for the provider (LiteLLM). Overrides env vars for custom api_base runs.",
     )
     p.add_argument("--no-baseline", action="store_true", help="Skip fixed_tokens baseline eval.")
     p.add_argument(
@@ -774,6 +1013,14 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
         help=(
             "Run every strategy compatible with content_type=text (from build_full_registry). "
             "Excludes agentic unless --include-agentic (agentic calls an LLM)."
+        ),
+    )
+    p.add_argument(
+        "--compare-all",
+        action="store_true",
+        help=(
+            "Evaluate every strategy compatible with content_type=text. "
+            "Equivalent to --all-text-strategies. Excludes agentic unless --include-agentic."
         ),
     )
     p.add_argument(
@@ -812,26 +1059,61 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
     p.add_argument("-q", "--quiet", action="store_true")
     args = p.parse_args(argv)
 
+    example_dir = Path(__file__).resolve().parent
+    load_dotenv(example_dir / ".env")
+    load_dotenv()
+
     logging.basicConfig(level=logging.WARNING if args.quiet else logging.INFO)
+
+    api_base: str | None = args.lm_studio_url
+    if args.lm_studio and not api_base:
+        api_base = "http://localhost:1234/v1"
+    api_key: str | None = args.api_key
+    if api_base and not api_key and args.lm_studio:
+        api_key = "lm-studio"
+    llm_model: str | None = args.llm_model
+
+    if api_base:
+        if not args.embedding_model:
+            raise SystemExit(
+                "--lm-studio / --lm-studio-url requires --embedding-model.\n"
+                "Example: --embedding-model openai/nomic-embed-text-v1.5"
+            )
+        if not llm_model:
+            raise SystemExit(
+                "--lm-studio / --lm-studio-url requires --llm-model.\n"
+                "Example: --llm-model openai/llama-3.2-3b-instruct"
+            )
 
     if args.fixture:
         rows = synthetic_fixture_records()[: max(1, args.num_transcripts)]
     else:
         rows = load_hf_transcripts(max(1, args.num_transcripts), streaming=True)
 
-    max_chars = None if args.no_truncate else args.max_chars
+    max_chars = args.max_chars
     docs = [
         transcript_record_to_document(r, text_mode=args.text_mode, max_chars=max_chars, index=i)
         for i, r in enumerate(rows)
     ]
 
     registry = build_full_registry()
+    all_text = args.all_text_strategies or args.compare_all
+    include_agentic = args.include_agentic or (
+        api_base is not None and llm_model is not None
+    )
     strategy_names = resolve_strategy_names(
         registry,
         strategies_csv=args.strategies,
-        all_text=args.all_text_strategies,
-        include_agentic=args.include_agentic,
+        all_text=all_text,
+        include_agentic=include_agentic,
     )
+    if api_base and llm_model and "agentic" in strategy_names:
+        try:
+            from chunktuner.chunking.agentic import AgenticStrategy
+
+            registry.register(AgenticStrategy(api_base=api_base, api_key=api_key))
+        except ImportError:
+            strategy_names = [n for n in strategy_names if n != "agentic"]
     allowed = set(registry.names(docs[0].content_type))
     strategy_names = [n for n in strategy_names if n in allowed]
     if not strategy_names:
@@ -840,12 +1122,15 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
             f"Requested (after filter) would be empty. Compatible: {sorted(allowed)}"
         )
 
-    dataset = build_financial_eval_dataset(docs)
+    dataset = build_eval_dataset_for(docs, llm_model, api_base, api_key)
     rec = run_recommendation(
         docs,
         use_case=cast(UseCase, args.use_case),
         top_k=args.top_k,
         embedding_model=args.embedding_model,
+        api_base=api_base,
+        api_key=api_key,
+        llm_model=llm_model,
         no_baseline=args.no_baseline,
         registry=registry,
         strategy_names=strategy_names,
@@ -856,10 +1141,9 @@ def run_benchmark_cli(argv: list[str] | None = None) -> Recommendation:
     )
 
     if not args.quiet:
-        print(format_summary(rec))
-        if rec.baseline:
-            b = rec.baseline
-            print(f"\nBaseline {b.strategy_name} score={b.score:.4f} (params={b.config.params})")
+        print_strategy_availability(registry, strategy_names, docs[0].content_type)
+        has_gen = any(r.metrics.faithfulness is not None for r in rec.ranked)
+        print_comparison_table(rec, docs, show_generation_metrics=has_gen)
 
     if args.export:
         args.export.write_text(rec.model_dump_json(indent=2), encoding="utf-8")

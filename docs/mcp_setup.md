@@ -27,6 +27,8 @@ pip install 'chunktuner[mcp]'
 ```
 
 - **`CHUNK_TUNER_BASE_DIR`**: every `path` argument to tools must resolve under this directory (security boundary).
+- **`CHUNKTUNER_API_BASE`** / **`CHUNKTUNER_API_KEY`**: optional OpenAI-compatible endpoint and key for LiteLLM when tools pass an `embedding_model` (LM Studio, Ollama, etc.). Do not put secrets in MCP tool arguments.
+- **`CHUNKTUNER_LLM_MODEL`**: default LiteLLM model id for LLM-backed paths in MCP evaluations (defaults to the library’s standard LLM default when unset).
 - **`CHUNKTUNER_CACHE_DIR`**: optional override for the SQLite cache directory when **you** use the cache layer (default: `~/.cache/chunktuner`; see `chunktuner.config.default_cache_dir`).
 - **Entry point**: `chunk-tune-mcp` → `chunktuner.mcp.server:run` (stdio JSON-RPC on stdout; **never** `print()` in MCP code).
 

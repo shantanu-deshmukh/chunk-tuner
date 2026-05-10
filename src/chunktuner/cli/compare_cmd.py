@@ -12,7 +12,7 @@ from rich.table import Table
 
 from chunktuner.chunking import default_registry
 from chunktuner.cli.common import load_workspace_path
-from chunktuner.config import load_workspace_config
+from chunktuner.config import load_workspace_config, resolve_provider_config
 from chunktuner.eval.embeddings import DummyEmbeddingFunction, LiteLLMEmbeddingFunction
 from chunktuner.eval.evaluator import Evaluator
 from chunktuner.eval.score_calculator import ScoreCalculator
@@ -34,21 +34,36 @@ def register(app: typer.Typer) -> None:
         config: Path | None = typer.Option(None, "--config"),
         report: Path | None = typer.Option(None, "--report", help="Write Markdown report path"),
         embedding_model: str | None = typer.Option(None, "--embedding-model"),
+        api_base: str | None = typer.Option(None, "--api-base"),
+        api_key: str | None = typer.Option(None, "--api-key"),
+        llm_model: str | None = typer.Option(None, "--llm-model"),
         yes: bool = typer.Option(False, "--yes"),
     ) -> None:
         """Compare a small set of strategies on the same corpus."""
-        if embedding_model and not yes:
+        ws = load_workspace_config(load_workspace_path(config))
+        resolved_api_base, resolved_api_key = resolve_provider_config(ws)
+        resolved_api_base = api_base or resolved_api_base
+        resolved_api_key = api_key or resolved_api_key
+        resolved_embedding_model = (
+            embedding_model if embedding_model is not None else ws.embedding_model
+        )
+        resolved_llm_model = llm_model if llm_model is not None else ws.llm_model
+
+        if resolved_embedding_model and not yes:
             typer.confirm(
                 "Embedding model set — this will call external APIs. Continue?",
                 default=False,
                 abort=True,
             )
         embed = (
-            LiteLLMEmbeddingFunction(embedding_model)
-            if embedding_model
+            LiteLLMEmbeddingFunction(
+                resolved_embedding_model,
+                api_base=resolved_api_base,
+                api_key=resolved_api_key,
+            )
+            if resolved_embedding_model
             else DummyEmbeddingFunction()
         )
-        ws = load_workspace_config(load_workspace_path(config))
         root = path.resolve().parent if path.is_file() else path.resolve()
         fi = FileIngestor(root=root)
         docs = fi.ingest_path(path) if path.is_file() else fi.ingest_dir(path)
@@ -59,7 +74,13 @@ def register(app: typer.Typer) -> None:
             typer.echo("Provide at least one strategy in --strategies", err=True)
             raise typer.Exit(2)
         scorer = ScoreCalculator(cast(UseCase, use_case))
-        ev = Evaluator(embed, top_k=top_k or ws.top_k)
+        ev = Evaluator(
+            embed,
+            top_k=top_k or ws.top_k,
+            llm_answer_model=resolved_llm_model,
+            llm_api_base=resolved_api_base,
+            llm_api_key=resolved_api_key,
+        )
         rows = []
         with Progress(
             SpinnerColumn(),

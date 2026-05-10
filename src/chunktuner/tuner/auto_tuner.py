@@ -24,7 +24,12 @@ logger = logging.getLogger(__name__)
 def _embed_task_fields(embedding_fn: object) -> dict:
     cls = embedding_fn.__class__.__name__
     if cls == "LiteLLMEmbeddingFunction":
-        return {"embed_type": "litellm", "embed_model": getattr(embedding_fn, "model", "")}
+        return {
+            "embed_type": "litellm",
+            "embed_model": getattr(embedding_fn, "model", ""),
+            "embed_api_base": getattr(embedding_fn, "api_base", None),
+            "embed_api_key": getattr(embedding_fn, "api_key", None),
+        }
     if cls == "CachedEmbeddingFunction":
         inner = getattr(embedding_fn, "_inner", None)
         cache = getattr(embedding_fn, "_cache", None)
@@ -41,6 +46,8 @@ def _embed_task_fields(embedding_fn: object) -> dict:
         if inner.__class__.__name__ == "LiteLLMEmbeddingFunction":
             out["inner_embed_type"] = "litellm"
             out["embed_model"] = getattr(inner, "model", "")
+            out["embed_api_base"] = getattr(inner, "api_base", None)
+            out["embed_api_key"] = getattr(inner, "api_key", None)
         else:
             out["inner_embed_type"] = "dummy"
             out["profile"] = getattr(inner, "profile_name", "dummy/test")
@@ -191,6 +198,9 @@ class AutoTuner:
                         "user_custom_weights": self.scorer.user_custom_weights,
                         "top_k": self.evaluator.top_k,
                         "enable_generation_metrics": self.evaluator.enable_generation_metrics,
+                        "llm_answer_model": self.evaluator.llm_answer_model,
+                        "llm_api_base": self.evaluator.llm_api_base,
+                        "llm_api_key": self.evaluator.llm_api_key,
                         "encoding": "cl100k_base",
                         **embed_fields,
                     }

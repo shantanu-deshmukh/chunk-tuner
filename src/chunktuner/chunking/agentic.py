@@ -10,6 +10,7 @@ from typing import Any
 import tiktoken
 
 from chunktuner.chunking.validation import validate_chunk_offsets, validate_content_type
+from chunktuner.config import DEFAULT_LLM_MODEL
 from chunktuner.models import Chunk, ChunkConfig, Document
 
 logger = logging.getLogger(__name__)
@@ -39,15 +40,30 @@ class AgenticStrategy:
     supported_content_types = ["text", "markdown"]
     description = "Uses an LLM to propose chunk spans; requires API access and ``litellm``."
 
-    def __init__(self, encoding_name: str = "cl100k_base"):
+    def __init__(
+        self,
+        encoding_name: str = "cl100k_base",
+        api_base: str | None = None,
+        api_key: str | None = None,
+    ):
         self._enc = tiktoken.get_encoding(encoding_name)
+        self.api_base = api_base
+        self.api_key = api_key
+
+    def _provider_kwargs(self) -> dict[str, str]:
+        kw: dict[str, str] = {}
+        if self.api_base:
+            kw["api_base"] = self.api_base
+        if self.api_key:
+            kw["api_key"] = self.api_key
+        return kw
 
     def chunk(self, doc: Document, config: ChunkConfig) -> list[Chunk]:
         """Call LiteLLM JSON mode to obtain ``start_offset`` / ``end_offset`` chunk list."""
         validate_content_type(self.name, self.supported_content_types, doc.content_type)
         import litellm
 
-        model = str(config.params.get("model", "gpt-4o-mini"))
+        model = str(config.params.get("model", DEFAULT_LLM_MODEL))
         max_props = int(config.params.get("max_propositions", 40))
         content = doc.content
         truncated = len(content) > MAX_CHARS
@@ -74,6 +90,7 @@ class AgenticStrategy:
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.1,
+            **self._provider_kwargs(),
         )
         raw = resp.choices[0].message.content or "{}"
         data = json.loads(raw)
@@ -143,4 +160,4 @@ class AgenticStrategy:
         }
 
     def default_param_grid(self) -> list[dict]:
-        return [{"model": "gpt-4o-mini", "max_propositions": 30}]
+        return [{"model": DEFAULT_LLM_MODEL, "max_propositions": 30}]

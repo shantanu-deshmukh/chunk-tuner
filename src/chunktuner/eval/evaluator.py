@@ -10,6 +10,7 @@ from collections import Counter, defaultdict
 import numpy as np
 import tiktoken
 
+from chunktuner.config import DEFAULT_LLM_MODEL
 from chunktuner.eval.effective_k import compute_effective_k
 from chunktuner.eval.score_calculator import ScoreCalculator
 from chunktuner.models import (
@@ -103,6 +104,8 @@ class Evaluator:
         context_budget_tokens: int = 2000,
         batch_size: int = 64,
         llm_answer_model: str | None = None,
+        llm_api_base: str | None = None,
+        llm_api_key: str | None = None,
         ragas_bridge: object | None = None,
     ):
         self.embedding_fn = embedding_fn
@@ -112,8 +115,18 @@ class Evaluator:
         self._enc = tiktoken.get_encoding(encoding_name)
         self.context_budget_tokens = context_budget_tokens
         self.batch_size = batch_size
-        self.llm_answer_model = llm_answer_model or "gpt-4o-mini"
+        self.llm_answer_model = llm_answer_model or DEFAULT_LLM_MODEL
+        self.llm_api_base = llm_api_base
+        self.llm_api_key = llm_api_key
         self.ragas_bridge = ragas_bridge
+
+    def _llm_provider_kwargs(self) -> dict[str, str]:
+        kw: dict[str, str] = {}
+        if self.llm_api_base:
+            kw["api_base"] = self.llm_api_base
+        if self.llm_api_key:
+            kw["api_key"] = self.llm_api_key
+        return kw
 
     def evaluate(
         self,
@@ -310,6 +323,7 @@ class Evaluator:
                     ],
                     max_tokens=256,
                     temperature=0.0,
+                    **self._llm_provider_kwargs(),
                 )
                 answer = (resp.choices[0].message.content or "").strip()
             except Exception as exc:

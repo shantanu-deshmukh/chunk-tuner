@@ -10,7 +10,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from chunktuner.chunking import default_registry
 from chunktuner.cli.common import load_workspace_path
-from chunktuner.config import load_workspace_config
+from chunktuner.config import load_workspace_config, resolve_provider_config
 from chunktuner.eval.embeddings import DummyEmbeddingFunction, LiteLLMEmbeddingFunction
 from chunktuner.eval.evaluator import Evaluator
 from chunktuner.eval.score_calculator import ScoreCalculator
@@ -37,21 +37,48 @@ def register(app: typer.Typer) -> None:
             "--embedding-model",
             help="If set, calls LiteLLM (paid). Omit to use dummy embeddings.",
         ),
+        api_base: str | None = typer.Option(
+            None,
+            "--api-base",
+            help="Custom OpenAI-compatible API base URL (LM Studio, Ollama, Azure, etc.).",
+        ),
+        api_key: str | None = typer.Option(
+            None,
+            "--api-key",
+            help="API key for the embedding provider (overrides env / workspace).",
+        ),
+        llm_model: str | None = typer.Option(
+            None,
+            "--llm-model",
+            help="LLM for generation-related paths; defaults to llm_model in .autochunk.yaml.",
+        ),
         yes: bool = typer.Option(False, "--yes", help="Skip confirmation for paid embedding calls"),
     ) -> None:
         """Evaluate chunking strategies (dummy embeddings by default)."""
-        if embedding_model and not yes:
+        ws = load_workspace_config(load_workspace_path(config))
+        resolved_api_base, resolved_api_key = resolve_provider_config(ws)
+        resolved_api_base = api_base or resolved_api_base
+        resolved_api_key = api_key or resolved_api_key
+        resolved_embedding_model = (
+            embedding_model if embedding_model is not None else ws.embedding_model
+        )
+        resolved_llm_model = llm_model if llm_model is not None else ws.llm_model
+
+        if resolved_embedding_model and not yes:
             typer.confirm(
                 "Embedding model set — this will call external APIs. Continue?",
                 default=False,
                 abort=True,
             )
         embed_fn = (
-            LiteLLMEmbeddingFunction(embedding_model)
-            if embedding_model
+            LiteLLMEmbeddingFunction(
+                resolved_embedding_model,
+                api_base=resolved_api_base,
+                api_key=resolved_api_key,
+            )
+            if resolved_embedding_model
             else DummyEmbeddingFunction()
         )
-        ws = load_workspace_config(load_workspace_path(config))
         root = path.resolve().parent if path.is_file() else path.resolve()
         fi = FileIngestor(root=root)
         docs = fi.ingest_path(path) if path.is_file() else fi.ingest_dir(path)
@@ -67,7 +94,13 @@ def register(app: typer.Typer) -> None:
         ds = trivial_dataset_for_docs(docs)
         names = [s.strip() for s in strategies.split(",") if s.strip()]
         scorer = ScoreCalculator(cast(UseCase, use_case))
-        ev = Evaluator(embed_fn, top_k=top_k or ws.top_k)
+        ev = Evaluator(
+            embed_fn,
+            top_k=top_k or ws.top_k,
+            llm_answer_model=resolved_llm_model,
+            llm_api_base=resolved_api_base,
+            llm_api_key=resolved_api_key,
+        )
         results = []
         total_jobs = sum(len(default_registry.get(n).default_param_grid()) for n in names)
         with Progress(

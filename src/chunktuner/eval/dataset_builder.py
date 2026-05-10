@@ -12,6 +12,7 @@ from pathlib import Path
 import tiktoken
 import yaml
 
+from chunktuner.config import DEFAULT_LLM_MODEL
 from chunktuner.models import Document, EvalDataset, EvalQuery
 
 logger = logging.getLogger(__name__)
@@ -34,9 +35,24 @@ def _token_f1(enc: tiktoken.Encoding, a: str, b: str) -> float:
 class DatasetBuilder:
     """Build `EvalDataset` from user files or LLM-generated Q&A over documents."""
 
-    def __init__(self, llm_model: str = "gpt-4o-mini"):
+    def __init__(
+        self,
+        llm_model: str = DEFAULT_LLM_MODEL,
+        llm_api_base: str | None = None,
+        llm_api_key: str | None = None,
+    ):
         self.llm_model = llm_model
+        self.llm_api_base = llm_api_base
+        self.llm_api_key = llm_api_key
         self._enc = tiktoken.get_encoding("cl100k_base")
+
+    def _provider_kwargs(self) -> dict[str, str]:
+        kw: dict[str, str] = {}
+        if self.llm_api_base:
+            kw["api_base"] = self.llm_api_base
+        if self.llm_api_key:
+            kw["api_key"] = self.llm_api_key
+        return kw
 
     def build_from_user_file(self, path: Path) -> EvalDataset:
         """Parse JSON or YAML with a ``queries`` list into an `EvalDataset` (user-provided)."""
@@ -94,6 +110,7 @@ class DatasetBuilder:
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"},
                     temperature=0.2,
+                    **self._provider_kwargs(),
                 )
                 raw = resp.choices[0].message.content or "{}"
                 payload = json.loads(raw)

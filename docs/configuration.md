@@ -8,8 +8,10 @@ Created in the **current directory** by `chunk-tune init`. Merged at runtime wit
 |-------|------|---------|-------------|
 | `version` | int | `1` | Schema version |
 | `provider` | string | `openai` | Provider label (stored for tooling) |
-| `embedding_model` | string | `text-embedding-3-small` | Default embedding model id |
-| `llm_model` | string | `gpt-4o-mini` | Default LLM for dataset / answer steps |
+| `embedding_model` | string or omitted | *(none)* | If set, CLI `recommend` / `evaluate` / `compare` use LiteLLM embeddings; if omitted, those commands use dummy embeddings unless you pass `--embedding-model` |
+| `llm_model` | string | `gpt-4o-mini` | Default LLM id for LiteLLM (agentic, generation metrics, dataset builders) |
+| `api_base` | string or null | `null` | Optional OpenAI-compatible base URL (LM Studio, Ollama, Azure, vLLM) |
+| `api_key` | string or null | `null` | Optional explicit API key; prefer `CHUNKTUNER_API_KEY` in environments where YAML should stay secret-free |
 | `use_case` | string | `rag_qa` | Default scoring profile |
 | `max_docs` | int | `100` | Default cap on documents per run |
 | `max_tokens_per_run` | int | `250_000` | Budget guard for runs that honor workspace config |
@@ -29,8 +31,11 @@ CLI commands accept `--config /path/to/.autochunk.yaml` to point elsewhere.
 |----------|--------|
 | `CHUNKTUNER_CACHE_DIR` | Overrides default cache directory (`~/.cache/chunktuner`) when resolving paths; also used by `default_cache_dir()` |
 | `CHUNK_TUNER_BASE_DIR` | **MCP / API security**: corpus root; every tool path must resolve under this directory |
+| `CHUNKTUNER_API_BASE` | Optional API base URL for LiteLLM (CLI fallback when `api_base` is unset in YAML; used by MCP server) |
+| `CHUNKTUNER_API_KEY` | Optional API key for LiteLLM (CLI fallback when `api_key` is unset in YAML; used by MCP server) |
+| `CHUNKTUNER_LLM_MODEL` | Default LLM model id for the MCP server when tools use an embedding model |
 | `CHUNKTUNER_SKIP_OFFSET_VALIDATION` | Set to `1` to skip chunk offset validation (debugging only) |
-| `OPENAI_API_KEY` / provider keys | Passed through **LiteLLM** for real embeddings and LLM calls |
+| `OPENAI_API_KEY` / `GEMINI_API_KEY` / other provider keys | Passed through **LiteLLM** for real embeddings and LLM calls |
 | `LITELLM_LOG` | LiteLLM logging verbosity |
 
 Logging for the library itself uses the standard `logging` module; configure handlers in your app. The `log_level` field in YAML is for conventions and future tooling.
